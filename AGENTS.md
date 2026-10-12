@@ -1,0 +1,2 @@
+# Breda Beats
+Keep DSP/codec/pattern logic independent of Android in core. Validate untrusted WAV lengths and durations. Never fabricate audio capabilities, latency measurements or supported formats. No microphone without permission and foreground lifecycle. Preserve corrupt projects; no silent reset. UI must not do disk I/O. Keep brand assets original and document implemented scope. Validate domain tests, lint and APK in GitHub Actions. Never commit signing keys.
