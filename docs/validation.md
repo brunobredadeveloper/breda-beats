@@ -1,3 +1,22 @@
+# Validation · Breda Beats Studio 0.4.0
+
+GitHub Actions [38422254625](https://github.com/brunobredadeveloper/breda-beats/actions/runs/38422254625) completed successfully on 13 October 2026. App commit `ec06ee33cd8cebd2fb6864cfdc42b7e75aba7150`.
+
+- 32 core + 11 Android unit/ViewModel + 3 native UI tests = **46 passed**, zero failures/skips.
+- New DSP tests exercise non-destructive reverse/pitch, looping/choke timing, global-tempo sequence switching/copy, pad copy/swap, delay timing/reset, FX bypass and validation bounds.
+- Editable backup tests restore samples/sequences/mix/FX and reject traversal paths and missing channel metadata.
+- Android lint: zero errors, four dependency-version warnings; compatible pinned versions retained.
+- Debug, preview and instrumentation APKs built. apksigner verified v2/v3 signatures for all three.
+- API 35 Pixel 2 emulator: all 16 pads fully visible with no pad-grid scroll in portrait/landscape; long press opens the pad editor. Screenshots from the preceding UI-equivalent build were visually inspected; final native test result separately checked.
+- Preview APK: 11,964,481 bytes; SHA-256 `b29ecee5bf46c92e26be52eb9315211190c3110ebd6e6528a57bd68fcf83cbbb`. Artifact digest, ZIP CRC/integrity and APK signing block checked after download.
+- Preview application ID `dev.breda.beats.preview04` installs separately from the previous `.debug` app. Ephemeral CI signing is still used; no stable commercial signing key has been configured.
+
+Physical-device sound, touch latency, microphone/audio routing and large-font layouts still require user evaluation. See [manual testing checklist](TESTING-04.md) and [feature limits](STUDIO-04.md).
+
+---
+
+## Previous release evidence
+
 # Validation · Breda Beats 0.3.0
 
 GitHub Actions run [38384860851](https://github.com/brunobredadeveloper/breda-beats/actions/runs/38384860851) completed successfully on 13 October 2026. App commit: `6b26f9502e182dd0933a1dc68cb11b8e9c218c1a`.
