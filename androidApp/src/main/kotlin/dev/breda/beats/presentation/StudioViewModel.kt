@@ -6,9 +6,9 @@ import dev.breda.beats.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 data class StudioState(val samples:List<Sample> = List(16){Kit.create(it)},val pattern:Pattern=Pattern(),val pad:Int=0,val playing:Boolean=false,val recording:Boolean=false,val busy:Boolean=true,val error:String?=null,val message:String?=null,val step:Int=-1,val page:Int=0,val loop:Boolean=false,val gate:Boolean=false,val reverse:Boolean=false,val start:Float=0f,val end:Float=1f,val gain:Float=1f,val drive:Float=0f)
-class StudioViewModel(private val repository:StudioRepository):ViewModel(){
+class StudioViewModel(private val repository:StudioRepository,private val createEngine:((()->Unit)->AudioEngine)):ViewModel(){
  private val mutable=MutableStateFlow(StudioState());val state=mutable.asStateFlow();private var engine:AudioEngine?=null;private val microphone=Microphone();private var recordTimeout:Job?=null;private val mutex=kotlinx.coroutines.sync.Mutex()
- init {viewModelScope.launch {try{val pair=withContext(Dispatchers.IO){repository.load()};engine=withContext(Dispatchers.Default){PcmAudioEngine().also{it.samples(pair.first)}};mutable.value=mutable.value.copy(samples=pair.first,pattern=pair.second,busy=false)}catch(e:Exception){mutable.value=mutable.value.copy(busy=false,error="Não foi possível abrir o estúdio: ${e.message}. Seus dados foram preservados.")}}
+ init {viewModelScope.launch {try{val pair=withContext(Dispatchers.IO){repository.load()};engine=withContext(Dispatchers.Default){createEngine {update{it.copy(playing=false,message="Áudio interrompido por outro aplicativo")}}.also{it.samples(pair.first)}};mutable.value=mutable.value.copy(samples=pair.first,pattern=pair.second,busy=false)}catch(e:Exception){mutable.value=mutable.value.copy(busy=false,error="Não foi possível abrir o estúdio: ${e.message}. Seus dados foram preservados.")}}
   viewModelScope.launch{while(isActive){mutable.update{it.copy(step=engine?.step?:-1)};delay(50)}}
  }
  private fun update(f:(StudioState)->StudioState)=mutable.update(f)
@@ -34,8 +34,8 @@ class StudioViewModel(private val repository:StudioRepository):ViewModel(){
  fun tempo(bpm:Int){save(pattern=state.value.pattern.copy(bpm=bpm.coerceIn(40,200)))}
  fun swing(v:Float){save(pattern=state.value.pattern.copy(swing=v.coerceIn(0f,.45f)))}
  fun applyEdit(){val s=state.value;val sample=s.samples[s.pad].edit(s.start,s.end,s.reverse,s.gain,s.drive);save(s.samples.mapIndexed{i,v->if(i==s.pad)sample else v});update{it.copy(start=0f,end=1f,reverse=false,gain=1f,drive=0f)}}
- fun chop(){val s=state.value;val sample=s.samples[s.pad].edit(s.start,s.end,s.reverse,s.gain,s.drive);if(sample.pcm.size<16){update{it.copy(error="Sample curto demais")};return};val parts=List(16){i->Sample(sample.pcm.copyOfRange(i*sample.pcm.size/16,(i+1)*sample.pcm.size/16),sample.rate)};save(parts)}
- fun import(bytes:ByteArray){try{val sample=Wav.decode(bytes);val s=state.value;save(s.samples.mapIndexed{i,v->if(i==s.pad)sample else v})}catch(e:Exception){update{it.copy(error=e.message)}}}
+ fun chop(){val s=state.value;if(s.start>=s.end){update{it.copy(error="Escolha um intervalo de corte válido")};return};val sample=s.samples[s.pad].edit(s.start,s.end,s.reverse,s.gain,s.drive);if(sample.pcm.size<16){update{it.copy(error="Sample curto demais")};return};val parts=List(16){i->Sample(sample.pcm.copyOfRange(i*sample.pcm.size/16,(i+1)*sample.pcm.size/16),sample.rate)};save(parts)}
+ fun import(bytes:ByteArray){if(state.value.busy)return;val pad=state.value.pad;viewModelScope.launch{try{val sample=withContext(Dispatchers.Default){Wav.decode(bytes)};val s=state.value;save(s.samples.mapIndexed{i,v->if(i==pad)sample else v})}catch(e:Exception){update{it.copy(error=e.message)}}}}
  fun record(){if(state.value.recording){finishRecording();return};if(state.value.busy || engine==null)return;stop();try{microphone.start();update{it.copy(recording=true)};recordTimeout=viewModelScope.launch{delay(10000);finishRecording()}}catch(e:Exception){microphone.cancel();update{it.copy(error="Não foi possível gravar: ${e.message}")}}}
  private fun finishRecording(){recordTimeout?.cancel();viewModelScope.launch{try{val sample=withContext(Dispatchers.IO){microphone.finish()};val s=state.value;update{it.copy(recording=false)};save(s.samples.mapIndexed{i,v->if(i==s.pad)sample else v})}catch(e:Exception){update{it.copy(recording=false,error=e.message)}}}}
  suspend fun export():ByteArray=withContext(Dispatchers.Default){val s=state.value;Wav.encode(s.pattern.render(s.samples))}

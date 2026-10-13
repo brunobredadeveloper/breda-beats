@@ -22,7 +22,11 @@ class LocalStudioRepository(private val context:Context):StudioRepository {
  }
 }
 interface AudioEngine:AutoCloseable { fun samples(value:List<Sample>); fun hit(pad:Int,loop:Boolean=false,gate:Boolean=false); fun release(pad:Int); fun transport(pattern:Pattern?); fun stopAll(); fun volume(v:Float); val step:Int }
-class PcmAudioEngine:AudioEngine {
+class PcmAudioEngine(context:Context,private val interrupted:()->Unit):AudioEngine {
+ private val manager=context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+ private var focused=false
+ private val focus=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setOnAudioFocusChangeListener{change->if(change<0){stopAll();interrupted()}}.build()
+ private fun acquire():Boolean {if(focused)return true;focused=manager.requestAudioFocus(focus)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED;if(!focused)interrupted();return focused}
  private data class Voice(val pad:Int,val sample:Sample,var position:Double=0.0,val loop:Boolean=false,val gate:Boolean=false)
  private val lock=Any();private var kit=List(16){Kit.create(it)};private val voices=mutableListOf<Voice>();private var pattern:Pattern?=null;private var nextFrame=0L;private var frame=0L;private var index=0;@Volatile override var step=-1;private var master=.7f
  private val alive=AtomicBoolean(true);private val track:AudioTrack
@@ -42,19 +46,19 @@ class PcmAudioEngine:AudioEngine {
  }
  private fun add(pad:Int,loop:Boolean,gate:Boolean){if(voices.size>=32)voices.removeAt(0);voices.removeAll{it.pad==pad && (it.loop || it.gate)};voices.add(Voice(pad,kit[pad],loop=loop,gate=gate))}
  override fun samples(value:List<Sample>)=synchronized(lock){require(value.size==16);kit=value}
- override fun hit(pad:Int,loop:Boolean,gate:Boolean)=synchronized(lock){add(pad,loop,gate)}
+ override fun hit(pad:Int,loop:Boolean,gate:Boolean){if(acquire())synchronized(lock){add(pad,loop,gate)}}
  override fun release(pad:Int)=synchronized(lock){voices.removeAll{it.pad==pad && it.gate};Unit}
- override fun transport(pattern:Pattern?)=synchronized(lock){this.pattern=pattern;index=0;nextFrame=frame;step=-1;Unit}
- override fun stopAll()=synchronized(lock){pattern=null;voices.clear();step=-1}
+ override fun transport(pattern:Pattern?){if(pattern!=null && !acquire())return;synchronized(lock){this.pattern=pattern;index=0;nextFrame=frame;step=-1}}
+ override fun stopAll(){synchronized(lock){pattern=null;voices.clear();step=-1};if(focused){focused=false;manager.abandonAudioFocusRequest(focus)}}
  override fun volume(v:Float)=synchronized(lock){master=v.coerceIn(0f,1f)}
- override fun close(){alive.set(false);track.pause();track.flush();worker.join(1000);track.release()}
+ override fun close(){stopAll();alive.set(false);track.pause();track.flush();worker.join(1000);track.release()}
 }
 class Microphone {
  @Volatile private var running=false;private var worker:Thread?=null;private var recorder:AudioRecord?=null;private val values=ArrayList<Float>();@Volatile var error:String?=null
  @android.annotation.SuppressLint("MissingPermission") fun start(){check(!running);error=null;values.clear();val min=AudioRecord.getMinBufferSize(44100,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);require(min>0)
   val r=AudioRecord(MediaRecorder.AudioSource.MIC,44100,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT,max(min,4096));require(r.state==AudioRecord.STATE_INITIALIZED){"Microfone indisponível"};recorder=r;r.startRecording();require(r.recordingState==AudioRecord.RECORDSTATE_RECORDING);running=true
-  worker=Thread({val b=ShortArray(1024);while(running && values.size<441000){val n=r.read(b,0,min(b.size,441000-values.size));if(n<=0){error="Falha ao ler microfone";break};for(i in 0 until n)values.add(b[i]/32768f)};running=false},"BredaMic").also{it.start()}
+  worker=Thread({val b=ShortArray(1024);while(running && values.size<441000){val n=r.read(b,0,min(b.size,441000-values.size));if(n<=0){if(running)error="Falha ao ler microfone";break};for(i in 0 until n)values.add(b[i]/32768f)};running=false},"BredaMic").also{it.start()}
  }
- fun finish():Sample {running=false;worker?.join(1000);recorder?.let{runCatching{it.stop()};it.release()};recorder=null;worker=null;error?.let{throw IllegalStateException(it)};require(values.isNotEmpty()){"Nenhum áudio capturado"};return Sample(values.toFloatArray())}
+ fun finish():Sample {running=false;recorder?.let{runCatching{it.stop()}};worker?.join(1000);recorder?.release();recorder=null;worker=null;error?.let{throw IllegalStateException(it)};require(values.isNotEmpty()){"Nenhum áudio capturado"};return Sample(values.toFloatArray())}
  fun cancel(){runCatching{finish()};values.clear()}
 }

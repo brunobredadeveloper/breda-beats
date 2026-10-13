@@ -36,7 +36,7 @@ import dev.breda.beats.presentation.*
 import kotlinx.coroutines.*
 import kotlin.math.abs
 private val Amber=Color(0xFFF6B44E);private val Purple=Color(0xFFB197FC);private val Panel=Color(0xFF22252C)
-class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Amber,secondary=Purple,background=Color(0xFF101115),surface=Panel)){val vm:StudioViewModel=viewModel(factory=viewModelFactory{initializer{StudioViewModel(LocalStudioRepository(applicationContext))}});Studio(vm,this)}}}}
+class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Amber,secondary=Purple,background=Color(0xFF101115),surface=Panel)){val vm:StudioViewModel=viewModel(factory=viewModelFactory{initializer{StudioViewModel(LocalStudioRepository(applicationContext)){callback->PcmAudioEngine(applicationContext,callback)}}});Studio(vm,this)}}}}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun Studio(vm:StudioViewModel,activity:ComponentActivity){
  val s by vm.state.collectAsStateWithLifecycle();val scope=rememberCoroutineScope();var volume by remember{mutableFloatStateOf(.7f)};var confirmChop by remember{mutableStateOf(false)};var splash by remember{mutableStateOf(true)};var knob by remember{mutableIntStateOf(-1)};var knobValue by remember{mutableFloatStateOf(0f)}

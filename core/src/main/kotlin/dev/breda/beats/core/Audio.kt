@@ -5,7 +5,7 @@ import kotlin.math.*
 data class Sample(val pcm: FloatArray, val rate: Int = 44100) {
  init { require(rate in 8000..96000); require(pcm.isNotEmpty()); require(pcm.size <= rate * 10) }
  fun edit(start: Float, end: Float, reverse: Boolean, gain: Float, drive: Float): Sample {
-  val a=(start.coerceIn(0f,.99f)*pcm.size).toInt(); val b=(end.coerceIn(start+.001f,1f)*pcm.size).toInt().coerceAtLeast(a+1).coerceAtMost(pcm.size)
+  require(start >= 0f && end <= 1f && start < end){"Escolha um intervalo de corte válido"}; val a=(start*pcm.size).toInt().coerceAtMost(pcm.lastIndex); val b=(end*pcm.size).toInt().coerceAtLeast(a+1).coerceAtMost(pcm.size)
   val out=pcm.copyOfRange(a,b)
   if(reverse)out.reverse()
   val fade=min(128,out.size/2)
