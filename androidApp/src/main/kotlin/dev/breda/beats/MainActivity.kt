@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.scale
@@ -46,7 +47,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val importer=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch{try{val bytes=withContext(Dispatchers.IO){activity.contentResolver.openInputStream(uri)?.use{val output=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192);while(true){val n=it.read(buffer);if(n<0)break;require(output.size()+n<=4_000_000){"Arquivo grande demais"};output.write(buffer,0,n)};output.toByteArray()}?:error("Não foi possível abrir")};vm.import(bytes)}catch(e:Exception){vm.message(e.message?:"Falha na importação")}}}
  val exporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("audio/wav")){uri->if(uri!=null)scope.launch{try{val bytes=vm.export();withContext(Dispatchers.IO){activity.contentResolver.openOutputStream(uri)?.use{it.write(bytes)}?:error("Destino indisponível")};vm.message("WAV exportado — um compasso de 4 tempos") }catch(e:Exception){vm.message("Exportação falhou: ${e.message}")}}}
  val snack=remember{SnackbarHostState()};LaunchedEffect(s.message){s.message?.let{snack.showSnackbar(it);vm.dismiss()}}
- if(splash){Box(Modifier.fillMaxSize().background(Color(0xFF101115)),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally){Text("BD",color=Purple,fontSize=60.sp,fontWeight=FontWeight.Black);LinearProgressIndicator(Modifier.width(160.dp));Text("BREDA BEATS",color=Amber,fontSize=24.sp);Text("Do sample à sua próxima batida",color=Color.LightGray)}};return}
+ if(splash){Box(Modifier.fillMaxSize().background(Color(0xFF101115)),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally){Image(painterResource(R.drawable.ic_brand),contentDescription="breda_dev",modifier=Modifier.size(108.dp));LinearProgressIndicator(Modifier.width(160.dp));Text("BREDA BEATS",color=Amber,fontSize=24.sp);Text("Do sample à sua próxima batida",color=Color.LightGray)}};return}
  Scaffold(snackbarHost={SnackbarHost(snack)},bottomBar={NavigationBar{listOf("PADS","SAMPLE","PATTERN","PROJETO").forEachIndexed{i,n->NavigationBarItem(selected=s.page==i,onClick={vm.page(i)},icon={Text(listOf("▦","∿","▥","BD")[i])},label={Text(n,fontSize=10.sp)})}}}){padding->
  Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("breda_dev",color=Purple,fontSize=12.sp);Text("BEATS / 01",fontWeight=FontWeight.Black,fontSize=26.sp)};Column(horizontalAlignment=Alignment.End){Text("SAMPLING WORKSTATION",fontSize=9.sp,color=Color.Gray);Text("${s.pattern.bpm} BPM",color=Amber,fontFamily=FontFamily.Monospace)}}
