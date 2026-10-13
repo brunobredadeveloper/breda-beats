@@ -17,7 +17,7 @@ jobs:
           packages: 'platform-tools platforms;android-37.0 build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
-      - run: ./gradlew :core:test :androidApp:testDebugUnitTest :androidApp:lintDebug :androidApp:assembleDebug --stacktrace
+      - run: ./gradlew :core:test :androidApp:testDebugUnitTest :androidApp:lintDebug :androidApp:assembleDebug :androidApp:assembleDebugAndroidTest --stacktrace
       - name: Sign and verify evaluation APK
         run: |
           mkdir -p "$HOME/.android"
@@ -25,14 +25,16 @@ jobs:
             keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey -dname "CN=Android Debug,O=breda_dev,C=BR" -keyalg RSA -keysize 2048 -validity 365
           fi
           signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-          for apk in androidApp/build/outputs/apk/debug/*.apk; do
+          for apk in androidApp/build/outputs/apk/debug/*.apk androidApp/build/outputs/apk/androidTest/debug/*.apk; do
             "$signer" sign --ks "$HOME/.android/debug.keystore" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android "$apk"
             "$signer" verify --verbose "$apk"
           done
       - uses: actions/upload-artifact@v4
         with:
           name: breda-beats-android-apk
-          path: androidApp/build/outputs/apk/debug/*.apk
+          path: |
+            androidApp/build/outputs/apk/debug/*.apk
+            androidApp/build/outputs/apk/androidTest/debug/*.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
@@ -42,3 +44,41 @@ jobs:
             core/build/reports/tests/
             androidApp/build/reports/tests/
             androidApp/build/reports/lint-results-debug.*
+
+  fixed-pads-ui:
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: breda-beats-android-apk
+          path: ui-apks
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb install $(find ui-apks -name '*debug.apk' ! -name '*androidTest*' | head -1)
+            adb install $(find ui-apks -name '*androidTest.apk' | head -1)
+            adb shell am instrument -w -r dev.breda.beats.debug.test/androidx.test.runner.AndroidJUnitRunner | tee ui-test-result.txt
+            grep -q 'OK (2 tests)' ui-test-result.txt
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-portrait.png .
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-landscape.png .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: breda-beats-fixed-pads-ui
+          path: |
+            ui-test-result.txt
+            ui-portrait.png
+            ui-landscape.png

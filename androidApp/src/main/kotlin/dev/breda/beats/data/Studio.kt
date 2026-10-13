@@ -50,6 +50,7 @@ class LocalStudioRepository(context:Context):StudioRepository {
 interface AudioEngine:AutoCloseable {
  fun samples(value:List<Sample>);fun mix(channels:List<Channel>);fun hit(pad:Int,loop:Boolean=false,gate:Boolean=false);fun release(pad:Int)
  fun transport(pattern:Pattern?);fun updatePattern(pattern:Pattern);fun stopAll();fun volume(v:Float)
+ fun click(accent:Boolean);fun metronome(enabled:Boolean,bpm:Int,standalone:Boolean=false)
  val step:Int;val quantizedStep:Int;val meters:List<Float>;val clipped:Boolean
 }
 class PcmAudioEngine(context:Context,private val interrupted:()->Unit):AudioEngine {
@@ -63,6 +64,7 @@ class PcmAudioEngine(context:Context,private val interrupted:()->Unit):AudioEngi
  @Volatile override var clipped=false
  override val meters get()=synchronized(lock){peaks.toList()}
  override val quantizedStep get()=synchronized(lock){if(step<0)0 else if(frame-lastFrame >= (nextFrame-lastFrame)/2)index else step}
+ private var metroEnabled=true;private var metroStandalone=false;private var metroBpm=88;private var nextClickFrame=0L;private val clickAccent=ClickSound.pcm(true);private val clickNormal=ClickSound.pcm(false);private var clickAudio=clickNormal;private var clickPosition=clickNormal.size
  private val alive=AtomicBoolean(true);private val track:AudioTrack;private val worker:Thread
  init {
   val min=AudioTrack.getMinBufferSize(44100,AudioFormat.CHANNEL_OUT_STEREO,AudioFormat.ENCODING_PCM_16BIT);require(min>0)
@@ -70,15 +72,19 @@ class PcmAudioEngine(context:Context,private val interrupted:()->Unit):AudioEngi
   require(track.state==AudioTrack.STATE_INITIALIZED);track.play()
   worker=Thread({android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);val buffer=ShortArray(512)
    while(alive.get()) {
-    synchronized(lock){peaks.fill(0f);clipped=false;for(i in 0 until buffer.size/2){pattern?.let{p->if(frame>=nextFrame){lastFrame=frame;step=index;p.steps[index].forEach{add(it,false,false)};nextFrame+=max(1,(p.stepSeconds(index)*44100).roundToInt());index=(index+1)%p.steps.size}}
+    synchronized(lock){peaks.fill(0f);clipped=false;for(i in 0 until buffer.size/2){pattern?.let{p->if(frame>=nextFrame){lastFrame=frame;step=index;if(metroEnabled && index%4==0)triggerClick(index%16==0);p.steps[index].forEach{add(it,false,false)};nextFrame+=max(1,(p.stepSeconds(index)*44100).roundToInt());index=(index+1)%p.steps.size}}
+     if(pattern==null && metroEnabled && metroStandalone && frame>=nextClickFrame){triggerClick(false);nextClickFrame=frame+(60.0/metroBpm*44100).roundToLong()}
      var left=0.0;var right=0.0;val iterator=voices.iterator();while(iterator.hasNext()){val v=iterator.next();var at=v.position.toInt();if(at>=v.sample.pcm.size){if(v.loop){v.position%=v.sample.pcm.size;at=v.position.toInt()}else{iterator.remove();continue}}
       val next=(at+1).coerceAtMost(v.sample.pcm.lastIndex);val value=v.sample.pcm[at]+(v.sample.pcm[next]-v.sample.pcm[at])*(v.position-at).toFloat();val gain=gains[v.pad];left+=value*gain.first;right+=value*gain.second;peaks[v.pad]=max(peaks[v.pad],abs(value)*max(gain.first,gain.second));v.position+=v.sample.rate/44100.0}
-     left*=master;right*=master;if(abs(left)>1 || abs(right)>1)clipped=true
+     left*=master;right*=master;if(clickPosition<clickAudio.size){val c=clickAudio[clickPosition++];left+=c;right+=c};if(abs(left)>1 || abs(right)>1)clipped=true
      buffer[i*2]=(left*32767).roundToInt().coerceIn(-32767,32767).toShort();buffer[i*2+1]=(right*32767).roundToInt().coerceIn(-32767,32767).toShort();frame++}}
     val written=track.write(buffer,0,buffer.size,AudioTrack.WRITE_BLOCKING);if(written<0)break
    }
   },"BredaPcm").also{it.start()}
  }
+ private fun triggerClick(accent:Boolean){clickAudio=if(accent)clickAccent else clickNormal;clickPosition=0}
+ override fun click(accent:Boolean){if(acquire())synchronized(lock){triggerClick(accent)}}
+ override fun metronome(enabled:Boolean,bpm:Int,standalone:Boolean){if(standalone && enabled && !acquire())return;synchronized(lock){metroEnabled=enabled;metroBpm=bpm.coerceIn(40,200);metroStandalone=standalone;if(standalone)nextClickFrame=frame}}
  private fun add(pad:Int,loop:Boolean,gate:Boolean){if(voices.size>=32)voices.removeAt(0);voices.removeAll{it.pad==pad && (it.loop || it.gate)};voices.add(Voice(pad,kit[pad],loop=loop,gate=gate))}
  override fun samples(value:List<Sample>)=synchronized(lock){require(value.size==16);kit=value}
  override fun mix(channels:List<Channel>)=synchronized(lock){require(channels.size==16);this.channels=channels;val solo=channels.any{it.solo};gains=channels.map{it.gains(solo)}}
@@ -86,7 +92,7 @@ class PcmAudioEngine(context:Context,private val interrupted:()->Unit):AudioEngi
  override fun release(pad:Int)=synchronized(lock){voices.removeAll{it.pad==pad && it.gate};Unit}
  override fun transport(pattern:Pattern?){if(pattern!=null && !acquire())return;synchronized(lock){this.pattern=pattern;index=0;nextFrame=frame;lastFrame=frame;step=-1}}
  override fun updatePattern(pattern:Pattern)=synchronized(lock){if(this.pattern!=null){require(this.pattern!!.steps.size==pattern.steps.size);this.pattern=pattern}}
- override fun stopAll(){synchronized(lock){pattern=null;voices.clear();peaks.fill(0f);step=-1};if(focused){focused=false;manager.abandonAudioFocusRequest(focus)}}
+ override fun stopAll(){synchronized(lock){pattern=null;metroStandalone=false;clickPosition=clickAudio.size;voices.clear();peaks.fill(0f);step=-1};if(focused){focused=false;manager.abandonAudioFocusRequest(focus)}}
  override fun volume(v:Float)=synchronized(lock){master=v.coerceIn(0f,1f)}
  override fun close(){stopAll();alive.set(false);track.pause();track.flush();worker.join(1000);track.release()}
 }

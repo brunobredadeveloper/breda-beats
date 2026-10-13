@@ -2,7 +2,16 @@
 
 Android sampler and 16-track beat studio: a SP-404MKII-inspired hardware panel with original breda_dev identity, pads, stereo channel mixer, quantized pad overdub, waveform editing, microphone sampling and WAV/stem export.
 
-## What's new in 0.2
+## What's new in 0.3
+- Audible BPM metronome, accented on the first beat of each 4/4 bar, using the same audio-frame clock as the pattern. Metronome audio is monitoring-only and excluded from mix/stem exports.
+- REC PADS and REC SAMPLE wait for the selected count-in: **3 seconds by default** (3→2→1), **one bar** (four beats at the project BPM), or immediate. Count-in beeps are independent of the metronome switch. Pads/edits are blocked during preparation; STOP, a second REC, background or disabling MIC during mic preparation cancels without starting a later take. Microphone capture is not opened until preparation finishes. Speaker clicks may be picked up acoustically during microphone recording; use headphones.
+- Dedicated performance page keeps all16pads fixed in a4×4grid. Controls/visor are compact, smaller portrait screens omit decorative knobs, and landscape puts controls beside the pad grid. Full microphone/count-in settings live in an explicit sheet; the grid itself has no scrolling container.
+- Automated native UI tests verify all16pads stay entirely within screen bounds in portrait and landscape. See validation docs for actual CI results.
+
+### Workflow references
+The official [FL Studio recording guide](https://www.image-line.com/fl-studio-learning/fl-studio-online-manual/html/recording_scores.htm) describes a metronome lead-in; [Ableton Live's count-in manual](https://www.ableton.com/en/live-manual/12/recording-new-clips/) postpones recording until count-in completes and offers metronome-only-while-recording; [Akai MPC Beats metronome support](https://support.akaipro.com/en/support/solutions/articles/69000862120-mpc-beats-why-is-the-metronome-silent-after-i-press-record-) documents Record+Play enablement. These are musical counts, not a universal fixed3secondrule. Breda Beats offers3s as the requested preparation preset plus tempo-based one-bar count-in.
+
+## Previous features in 0.2
 - UNDO/REDO for the last 20 committed edits in the current session: sample replacements, chop, destructive edits, volume/pan, mute/solo, notes, track erase and complete overdub takes. Failed saves never modify history. A new edit after undo clears the redo branch.
 - 16 channel strips with individual volume 0–100%, equal-power stereo pan, mute, solo, post-channel peak display and cue. Kick 70% and snare 100% remain independent. Master is stored with the project. Mix/export both apply channel settings.
 - 16 sample tracks, 1–8 bars (4/4), a piano-roll-style note matrix, per-track step editor, BPM/swing, quantized 1/16 live overdub and ERASE TRACK. Playback continues while committing mixer adjustments. One take is one undo action.

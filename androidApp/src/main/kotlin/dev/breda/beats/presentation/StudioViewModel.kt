@@ -13,6 +13,7 @@ data class StudioState(
     val project:StudioProject=StudioProject(), val pad:Int=0, val playing:Boolean=false,
     val recording:Boolean=false, val recordPads:Boolean=false, val micEnabled:Boolean=false,
     val pendingTake:Sample?=null, val takePad:Int=0, val busy:Boolean=true,
+    val countInMode:CountInMode=CountInMode.THREE_SECONDS,val countdown:Int=0,val countdownMic:Boolean=false,val metronome:Boolean=true,
     val error:String?=null, val message:String?=null, val step:Int=-1, val page:Int=0,
     val loop:Boolean=false, val gate:Boolean=false, val reverse:Boolean=false,
     val start:Float=0f, val end:Float=1f, val gain:Float=1f, val drive:Float=0f,
@@ -36,6 +37,7 @@ class StudioViewModel(
     private var recordBase:StudioProject?=null
     private var micGeneration=0L
     private var finishingMic=false
+    private var countInJob:Job?=null
     init {
         viewModelScope.launch {
             try {
@@ -50,13 +52,13 @@ class StudioViewModel(
         }
     }
     private fun update(f:(StudioState)->StudioState)=mutable.update(f)
-    private fun applyAudio(p:StudioProject){engine?.samples(p.samples);engine?.mix(p.channels);engine?.volume(p.master)}
+    private fun applyAudio(p:StudioProject){engine?.samples(p.samples);engine?.mix(p.channels);engine?.volume(p.master);engine?.metronome(state.value.metronome,p.pattern.bpm)}
     fun dismiss(){update{it.copy(error=null,message=null)}}
     fun message(text:String){update{it.copy(message=text)}}
     fun select(pad:Int){update{it.copy(pad=pad,start=0f,end=1f,reverse=false,gain=1f,drive=0f)}}
     fun hit(pad:Int){
         val s=state.value
-        if(s.busy || engine==null || s.recording)return
+        if(s.busy || engine==null || s.recording || s.countdown>0)return
         select(pad)
         if(s.recordPads){
             val index=(engine?.quantizedStep?:0).coerceIn(0,s.pattern.steps.lastIndex)
@@ -76,7 +78,7 @@ class StudioViewModel(
     fun volume(v:Float){engine?.volume(v)}
     fun master(v:Float){val p=state.value.project.copy(master=v.coerceIn(0f,1f));if(state.value.recordPads){update{it.copy(project=p)};engine?.volume(p.master)}else commit(p)}
     private fun commit(next:StudioProject,kind:Int=0,previous:StudioProject=state.value.project,completed:()->Unit={}){
-        if(state.value.busy || engine==null || state.value.recordPads || state.value.recording)return
+        if(state.value.busy || engine==null || state.value.recordPads || state.value.recording || state.value.countdown>0)return
         if(next==previous)return
         update{it.copy(busy=true)}
         viewModelScope.launch {
@@ -103,14 +105,29 @@ class StudioViewModel(
     fun swing(v:Float){commit(state.value.project.copy(pattern=state.value.pattern.copy(swing=v.coerceIn(0f,.45f))))}
     fun toggle(){
         if(state.value.recordPads){finishPads();return}
-        val s=state.value;if(s.busy || s.recording || engine==null)return
+        val s=state.value;if(s.countdown>0){stop();return};if(s.busy || s.recording || engine==null)return
         engine?.transport(if(s.playing)null else s.pattern);update{it.copy(playing=!it.playing)}
     }
+    fun metronome(){val enabled=!state.value.metronome;update{it.copy(metronome=enabled)};engine?.metronome(enabled,state.value.pattern.bpm,state.value.recording)}
+    fun countIn(mode:CountInMode){if(state.value.countdown==0 && !state.value.recordPads && !state.value.recording)update{it.copy(countInMode=mode)}}
+    private fun prepare(mic:Boolean,ready:()->Unit){
+        val ticks=CountIn.ticks(state.value.countInMode,state.value.pattern.bpm)
+        engine?.stopAll()
+        if(ticks.isEmpty()){ready();return}
+        update{it.copy(countdown=ticks.first().number,countdownMic=mic,playing=false)}
+        countInJob=viewModelScope.launch{
+            for(tick in ticks){update{it.copy(countdown=tick.number)};engine?.click(tick.accent);delay(tick.waitMillis)}
+            update{it.copy(countdown=0,countdownMic=false)};countInJob=null;ready()
+        }
+    }
     fun recordPads(){
+        if(state.value.countdown>0){stop();return}
         if(state.value.recordPads){finishPads();return}
-        val s=state.value;if(s.busy || s.recording || engine==null)return
-        recordBase=s.project;engine?.stopAll();engine?.transport(s.pattern)
-        update{it.copy(recordPads=true,playing=true,message="Overdub ligado: toque os pads. Microfone não é usado. STOP salva o take.")}
+        val s=state.value;if(s.busy || s.recording || engine==null || s.pendingTake!=null)return
+        prepare(false){
+            recordBase=state.value.project;engine?.stopAll();engine?.metronome(state.value.metronome,state.value.pattern.bpm);engine?.transport(state.value.pattern)
+            update{it.copy(recordPads=true,playing=true,message="Overdub ligado: toque os pads. Microfone não é usado. STOP salva o take.")}
+        }
     }
     private fun finishPads(){
         val before=recordBase?:return;recordBase=null
@@ -118,13 +135,14 @@ class StudioViewModel(
         commit(next,previous=before)
     }
     fun stop(){
+        countInJob?.cancel();countInJob=null;update{it.copy(countdown=0,countdownMic=false)}
         if(state.value.recordPads)finishPads()
         engine?.stopAll();update{it.copy(playing=false)}
         if(state.value.recording){micGeneration++;microphone.cancel();recordTimeout?.cancel();update{it.copy(recording=false,message="Gravação descartada; sample anterior preservado")}}
     }
     fun enableMic(){
         val enabled=!state.value.micEnabled
-        if(!enabled){micGeneration++;if(state.value.recording){microphone.cancel();recordTimeout?.cancel()}}
+        if(!enabled){micGeneration++;if(state.value.countdownMic)stop();if(state.value.recording){microphone.cancel();recordTimeout?.cancel();engine?.stopAll()}}
         update{it.copy(micEnabled=enabled,recording=if(enabled)it.recording else false,message=if(enabled)"Microfone habilitado. Só captura ao tocar REC SAMPLE." else "Microfone desligado. Nenhuma captura em andamento.")}
     }
     fun applyEdit(){
@@ -136,24 +154,33 @@ class StudioViewModel(
         try{val sample=s.samples[s.pad].edit(s.start,s.end,s.reverse,s.gain,s.drive);require(sample.pcm.size>=16){"Sample curto demais"};val parts=List(16){i->Sample(sample.pcm.copyOfRange(i*sample.pcm.size/16,(i+1)*sample.pcm.size/16),sample.rate)};commit(s.project.copy(samples=parts))}catch(e:Exception){message(e.message?:"Corte inválido")}
     }
     fun import(bytes:ByteArray){
-        if(state.value.busy || state.value.recordPads || state.value.recording)return
+        if(state.value.busy || state.value.recordPads || state.value.recording || state.value.countdown>0)return
         val pad=state.value.pad
         viewModelScope.launch{try{val sample=withContext(cpu){Wav.decode(bytes)};val s=state.value;commit(s.project.copy(samples=s.samples.mapIndexed{i,v->if(i==pad)sample else v}))}catch(e:Exception){update{it.copy(error=e.message)}}}
     }
     fun record(){
+        if(state.value.countdown>0){stop();return}
         if(state.value.recording){finishRecording();return}
         val s=state.value
         if(!s.micEnabled){message("Microfone desligado. Habilite MIC antes de gravar um sample.");return}
-        if(s.busy || s.recordPads || engine==null || s.pendingTake!=null)return
-        stop()
-        try{micGeneration++;microphone.start();update{it.copy(recording=true,takePad=s.pad)};recordTimeout=viewModelScope.launch{delay(10000);finishRecording()}}catch(e:Exception){microphone.cancel();update{it.copy(error="Não foi possível gravar: ${e.message}")}}
+        if(s.busy || s.recordPads || engine==null || s.pendingTake!=null || finishingMic)return
+        val pad=s.pad
+        prepare(true){
+            if(state.value.micEnabled){
+                try{
+                    micGeneration++;microphone.start();engine?.metronome(state.value.metronome,state.value.pattern.bpm,true)
+                    update{it.copy(recording=true,takePad=pad)}
+                    recordTimeout=viewModelScope.launch{delay(10000);finishRecording()}
+                }catch(e:Exception){microphone.cancel();engine?.stopAll();update{it.copy(error="Não foi possível gravar: ${e.message}")}}
+            }
+        }
     }
     private fun finishRecording(){
         if(finishingMic || !state.value.recording)return
         finishingMic=true;recordTimeout?.cancel();val generation=micGeneration
         viewModelScope.launch{
             try{
-                val sample=withContext(io){microphone.finish()}
+                val sample=withContext(io){microphone.finish()};engine?.metronome(state.value.metronome,state.value.pattern.bpm,false)
                 if(generation==micGeneration && state.value.micEnabled)update{it.copy(recording=false,pendingTake=sample)}
             }catch(e:Exception){if(generation==micGeneration)update{it.copy(recording=false,error=e.message)}}
             finally{finishingMic=false}

@@ -2,7 +2,7 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.plugin.compose
 android {
     namespace = "dev.breda.beats"
     compileSdk = 37
-    defaultConfig { applicationId = "dev.breda.beats"; minSdk = 26; targetSdk = 37; versionCode = 2; versionName = "0.2.0"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "dev.breda.beats"; minSdk = 26; targetSdk = 37; versionCode = 3; versionName = "0.3.0"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
     buildFeatures { compose = true; resValues = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     buildTypes {
@@ -11,6 +11,10 @@ android {
     }
 }
 dependencies {
+    androidTestImplementation(platform("androidx.compose:compose-bom:2026.09.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     implementation(project(":core"))
