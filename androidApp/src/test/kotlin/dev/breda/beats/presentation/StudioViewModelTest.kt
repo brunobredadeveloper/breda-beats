@@ -17,6 +17,9 @@ class StudioViewModelTest {
         override fun save(project:StudioProject){check(!fail){"disk full"};this.project=project}
     }
     private class Engine:AudioEngine {
+        override val songIndex=0
+        override fun effects(settings:FxSettings,bpm:Int){}
+        override fun song(patterns:List<Pattern>){}
         override val step=0
         override val quantizedStep=2
         override val meters=List(16){0f}

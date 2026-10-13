@@ -26,10 +26,12 @@ import kotlin.math.*
 private val Gold=Color(0xFFF6B44E)
 private val Violet=Color(0xFFB197FC)
 private val DarkPanel=Color(0xFF22252C)
+private val PadColors=listOf(Color(0xFFF6B44E),Color(0xFFFF819D),Color(0xFF6EF5D0),Color(0xFFB197FC))
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class,ExperimentalFoundationApi::class)
 @Composable fun PerformanceScreen(s:StudioState,vm:StudioViewModel,modifier:Modifier=Modifier,onKnob:(Int)->Unit,onImport:()->Unit,onMicRecord:()->Unit){
-    var settings by remember{mutableStateOf(false)}
+    var settings by remember{mutableStateOf(false)};var editingPad by remember{mutableIntStateOf(-1)}
+    fun edit(pad:Int){vm.select(pad);editingPad=pad}
     BoxWithConstraints(modifier.fillMaxSize().padding(8.dp)){
         val landscape=maxWidth>maxHeight*1.3f
         val compact=maxHeight<600.dp
@@ -39,9 +41,9 @@ private val DarkPanel=Color(0xFF22252C)
                     Header(s,vm,onKnob)
                     Display(s,compact=true)
                     Transport(s,vm)
-                    Utility(s,vm){settings=true}
+                    Utility(s,vm,{settings=true},{edit(s.pad)})
                 }
-                PadGrid(s,vm,Modifier.weight(.63f).fillMaxHeight())
+                PadGrid(s,vm,Modifier.weight(.63f).fillMaxHeight(),::edit)
             }
         }else{
             Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(6.dp)){
@@ -51,11 +53,12 @@ private val DarkPanel=Color(0xFF22252C)
                 }
                 Display(s,compact)
                 Transport(s,vm)
-                PadGrid(s,vm,Modifier.fillMaxWidth().weight(1f))
-                Utility(s,vm){settings=true}
+                PadGrid(s,vm,Modifier.fillMaxWidth().weight(1f),::edit)
+                Utility(s,vm,{settings=true},{edit(s.pad)})
             }
         }
     }
+    if(editingPad>=0)PadPanel(editingPad,s,vm){editingPad=-1;vm.previewChannel(s.pad,s.project.channels[s.pad])}
     if(settings)ModalBottomSheet(onDismissRequest={settings=false}){
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
             Text("PREPARAÇÃO E GRAVAÇÃO",fontWeight=FontWeight.Bold,color=Violet)
@@ -85,14 +88,14 @@ private val DarkPanel=Color(0xFF22252C)
 
 @Composable private fun Header(s:StudioState,vm:StudioViewModel,onKnob:(Int)->Unit){
     Row(Modifier.fillMaxWidth().height(40.dp),verticalAlignment=Alignment.CenterVertically){
-        Column(Modifier.weight(1f)){Text("breda_dev",fontSize=8.sp,color=Violet);Text("BEATS",fontSize=19.sp,fontWeight=FontWeight.Black)}
+        Column(Modifier.weight(1f)){Text("breda_dev",fontSize=8.sp,color=Violet);Text("BEATS / 04",fontSize=19.sp,fontWeight=FontWeight.Black)}
         TextButton(onClick={onKnob(1)},contentPadding=PaddingValues(4.dp)){Text("${s.pattern.bpm} BPM",color=Gold,fontSize=12.sp)}
         IconButton(onClick={vm.undo()},enabled=s.canUndo && !s.busy && !s.recordPads && !s.recording && s.countdown==0,modifier=Modifier.size(40.dp).semantics{contentDescription="Desfazer"}){Text("↶",fontSize=22.sp)}
         IconButton(onClick={vm.redo()},enabled=s.canRedo && !s.busy && !s.recordPads && !s.recording && s.countdown==0,modifier=Modifier.size(40.dp).semantics{contentDescription="Refazer"}){Text("↷",fontSize=22.sp)}
     }
 }
 @Composable private fun Display(s:StudioState,compact:Boolean){
-    val status=when{ s.countdown>0->"PREPARAR ${s.countdown}${if(s.countInMode==CountInMode.THREE_SECONDS)" s" else ""}";s.recording->"● REC MIC";s.recordPads->"● REC PADS";s.playing->"▶ ${s.step+1}";else->"READY" }
+    val status=when{ s.countdown>0->"PREPARAR ${s.countdown}${if(s.countInMode==CountInMode.THREE_SECONDS)" s" else ""}";s.recording->"● REC MIC";s.recordPads->"● REC PADS";s.playing->if(s.songPlaying)"SONG ${s.songPosition+1}" else "▶ ${s.step+1}";else->"READY" }
     Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF090C10)),border=BorderStroke(1.dp,Color(0xFF424651))){
         Column(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=6.dp)){
             Row(verticalAlignment=Alignment.CenterVertically){Text("${s.pad+1} · ${s.project.names[s.pad]}",Modifier.weight(1f),color=Gold,fontSize=10.sp,maxLines=1,overflow=TextOverflow.Ellipsis);Text(status,color=if(s.countdown>0)Violet else Gold,fontSize=11.sp,fontWeight=FontWeight.Bold,modifier=Modifier.testTag("record-status"))}
@@ -109,10 +112,10 @@ private val DarkPanel=Color(0xFF22252C)
         SmallButton("STOP",false,Modifier.weight(1f)){vm.stop()}
     }
 }
-@Composable private fun Utility(s:StudioState,vm:StudioViewModel,settings:()->Unit){
+@Composable private fun Utility(s:StudioState,vm:StudioViewModel,settings:()->Unit,edit:()->Unit){
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(5.dp)){
         SmallButton("LOOP",s.loop,Modifier.weight(1f)){vm.loop()}
-        SmallButton("GATE",s.gate,Modifier.weight(1f)){vm.gate()}
+        SmallButton("EDIT",s.padEditMode,Modifier.weight(1f)){vm.editMode()}
         SmallButton("METRO",s.metronome,Modifier.weight(1.1f)){vm.metronome()}
         SmallButton("AJUSTES",false,Modifier.weight(1.25f),settings)
     }
@@ -120,18 +123,20 @@ private val DarkPanel=Color(0xFF22252C)
 @Composable private fun SmallButton(text:String,on:Boolean,modifier:Modifier,click:()->Unit){
     Button(onClick=click,modifier=modifier.height(44.dp),shape=RoundedCornerShape(8.dp),contentPadding=PaddingValues(3.dp),colors=ButtonDefaults.buttonColors(containerColor=if(on)Gold else DarkPanel,contentColor=if(on)Color.Black else Gold)){Text(text,fontSize=9.sp,fontWeight=FontWeight.Bold,maxLines=1)}
 }
-@Composable private fun PadGrid(s:StudioState,vm:StudioViewModel,modifier:Modifier){
+@Composable private fun PadGrid(s:StudioState,vm:StudioViewModel,modifier:Modifier,edit:(Int)->Unit){
     Column(modifier.testTag("fixed-pad-grid"),verticalArrangement=Arrangement.spacedBy(6.dp)){
         for(row in 0..3)Row(Modifier.weight(1f).fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
-            for(col in 0..3){val pad=row*4+col;FixedPad(pad,s.project.names[pad],s.pad==pad,!s.busy && s.countdown==0 && !s.recording,Modifier.weight(1f).fillMaxHeight(),vm)}
+            for(col in 0..3){val pad=row*4+col;FixedPad(pad,s.project.names[pad],s.pad==pad,!s.busy && s.countdown==0 && !s.recording,Modifier.weight(1f).fillMaxHeight(),vm,s.padEditMode,s.project.channels[pad],s.recordPads,{edit(pad)})}
         }
     }
 }
-@Composable private fun FixedPad(pad:Int,name:String,selected:Boolean,enabled:Boolean,modifier:Modifier,vm:StudioViewModel){
+@Composable private fun FixedPad(pad:Int,name:String,selected:Boolean,enabled:Boolean,modifier:Modifier,vm:StudioViewModel,editMode:Boolean,channel:Channel,recording:Boolean,edit:()->Unit){
+    val accent=PadColors[pad/4]
     var pressed by remember{mutableStateOf(false)};val scale by animateFloatAsState(if(pressed).95f else 1f,label="Pad press")
-    BoxWithConstraints(modifier.scale(scale).testTag("pad-${pad+1}").background(if(pressed)Gold else DarkPanel,RoundedCornerShape(10.dp)).border(if(selected)2.dp else 1.dp,if(selected)Violet else Color(0xFF424651),RoundedCornerShape(10.dp)).semantics{contentDescription="Pad ${pad+1}, $name";role=Role.Button;onClick{if(enabled){vm.hit(pad);vm.release(pad)};enabled}}.pointerInput(pad,enabled){detectTapGestures(onPress={if(enabled){pressed=true;vm.hit(pad);try{tryAwaitRelease()}finally{pressed=false;vm.release(pad)}}})}.padding(7.dp)){
-        Text("${pad+1}",fontSize=if(maxHeight<48.dp)18.sp else 26.sp,fontWeight=FontWeight.Black,color=if(pressed)Color.Black else Gold,modifier=Modifier.align(Alignment.TopStart),maxLines=1)
-        if(maxHeight>=48.dp)Text(name,fontSize=8.sp,color=if(pressed)Color.Black else Color.LightGray,modifier=Modifier.align(Alignment.BottomStart),maxLines=1,overflow=TextOverflow.Ellipsis)
+    BoxWithConstraints(modifier.scale(scale).testTag("pad-${pad+1}").background(if(pressed)accent else Color(0xFF191D25),RoundedCornerShape(10.dp)).border(if(selected)2.dp else 1.dp,if(selected)accent else accent.copy(alpha=.25f),RoundedCornerShape(10.dp)).semantics{contentDescription="Pad ${pad+1}, $name";role=Role.Button;onClick{if(enabled){if(editMode)edit() else{vm.hit(pad);vm.release(pad)}};enabled};onLongClick("Editar pad"){if(enabled && !recording)edit();enabled && !recording}}.pointerInput(pad,enabled,editMode,recording){detectTapGestures(onTap={if(enabled && editMode)edit()},onLongPress={if(enabled && !recording){pressed=false;vm.release(pad);edit()}},onPress={if(enabled && !editMode){pressed=true;vm.hit(pad);try{tryAwaitRelease()}finally{pressed=false;vm.release(pad)}}})}.padding(7.dp)){
+        Text("${pad+1}",fontSize=if(maxHeight<48.dp)18.sp else 26.sp,fontWeight=FontWeight.Black,color=if(pressed)Color.Black else accent,modifier=Modifier.align(Alignment.TopStart),maxLines=1)
+        if(channel.pitch!=0)Text("${if(channel.pitch>0)"+" else ""}${channel.pitch}",fontSize=9.sp,color=Violet,modifier=Modifier.align(Alignment.TopEnd))
+        if(maxHeight>=48.dp)Text("$name · ${(channel.level*100).toInt()}%",fontSize=8.sp,color=if(pressed)Color.Black else Color.LightGray,modifier=Modifier.align(Alignment.BottomStart),maxLines=1,overflow=TextOverflow.Ellipsis)
     }
 }
 @Composable private fun MiniWave(sample:Sample,modifier:Modifier){

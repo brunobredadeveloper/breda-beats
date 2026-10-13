@@ -1,4 +1,10 @@
-# Breda Beats · breda_dev
+# Breda Beats Studio 0.4
+
+A breda_dev Android sampler for rap production: fixed 16-pad performance, long-press pad editing, eight sequences, song arrangement, 16-channel mixing, master FX, internal resampling and editable project backups.
+
+See [Studio 0.4 workflow and limits](docs/STUDIO-04.md). Architecture remains MVVM with pure Kotlin domain/DSP and injected Android adapters. GitHub Actions validates tests, lint, signed APKs and native portrait/landscape pad geometry.
+
+## Earlier workflow · breda_dev
 
 Android sampler and 16-track beat studio: a SP-404MKII-inspired hardware panel with original breda_dev identity, pads, stereo channel mixer, quantized pad overdub, waveform editing, microphone sampling and WAV/stem export.
 

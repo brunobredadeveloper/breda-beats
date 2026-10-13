@@ -20,14 +20,14 @@ object Wav {
   s.pcm.forEach{b.putShort((it.coerceIn(-1f,1f)*32767).toInt().toShort())};return b.array()
  }
  fun decode(bytes:ByteArray):Sample {
-  require(bytes.size in 44..4_000_000){"WAV muito grande ou incompleto"}
+  require(bytes.size in 44..24_000_000){"WAV muito grande ou incompleto"}
   val b=ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
   fun tag(i:Int)=String(bytes,i,4,Charsets.US_ASCII)
   require(tag(0)=="RIFF" && tag(8)=="WAVE"){"Use WAV PCM de 16 bits"}
   var pos=12;var channels=0;var rate=0;var bits=0;var format=0;var data:FloatArray?=null
   while(pos+8<=bytes.size){val size=b.getInt(pos+4);require(size>=0 && size<=bytes.size-pos-8){"WAV inválido"};val at=pos+8
    when(tag(pos)){"fmt "->{require(size>=16);format=b.getShort(at).toInt();channels=b.getShort(at+2).toInt();rate=b.getInt(at+4);bits=b.getShort(at+14).toInt()}
-    "data"->{require(format==1 && bits==16 && channels in 1..2 && rate in 8000..96000){"Use WAV PCM 16 bits mono ou estéreo"};val n=size/(2*channels);require(n>0 && n<=rate*10){"Limite: 10 segundos por sample"};data=FloatArray(n){i->(0 until channels).sumOf{c->b.getShort(at+(i*channels+c)*2).toDouble()/32768}.toFloat()/channels}}
+    "data"->{require(format==1 && bits==16 && channels in 1..2 && rate in 8000..96000){"Use WAV PCM 16 bits mono ou estéreo"};val n=size/(2*channels);require(n>0 && n<=rate*60){"Limite: 60 segundos por sample"};data=FloatArray(n){i->(0 until channels).sumOf{c->b.getShort(at+(i*channels+c)*2).toDouble()/32768}.toFloat()/channels}}
    };pos=at+size+(size%2)
   };return Sample(requireNotNull(data){"Áudio não encontrado"},rate)
  }

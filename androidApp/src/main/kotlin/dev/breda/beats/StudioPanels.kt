@@ -30,7 +30,7 @@ private val Violet=Color(0xFFB197FC)
             }
             if(s.micEnabled){
                 Button(onClick=record,enabled=!s.busy && !s.recordPads && s.pendingTake==null,modifier=Modifier.fillMaxWidth()){
-                    Text(if(s.countdownMic)"CANCELAR CONTAGEM" else if(s.recording)"ENCERRAR TAKE DO MICROFONE" else "REC SAMPLE · MICROFONE (ATÉ 10 s)",fontSize=10.sp)
+                    Text(if(s.countdownMic)"CANCELAR CONTAGEM" else if(s.recording)"ENCERRAR TAKE DO MICROFONE" else "REC SAMPLE · MICROFONE (ATÉ 60 s)",fontSize=10.sp)
                 }
                 Text("Gravação só substitui o sample após MANTER. Desligar MIC cancela a preparação/captura. Use fones para não captar os clicks do alto-falante.",fontSize=10.sp,color=Color.Gray)
             }
