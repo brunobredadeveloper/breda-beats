@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -37,34 +38,39 @@ import dev.breda.beats.presentation.*
 import kotlinx.coroutines.*
 import kotlin.math.abs
 private val Amber=Color(0xFFF6B44E);private val Purple=Color(0xFFB197FC);private val Panel=Color(0xFF22252C)
-class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Amber,secondary=Purple,background=Color(0xFF101115),surface=Panel)){val vm:StudioViewModel=viewModel(factory=viewModelFactory{initializer{StudioViewModel(LocalStudioRepository(applicationContext)){callback->PcmAudioEngine(applicationContext,callback)}}});Studio(vm,this)}}}}
+class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Amber,secondary=Purple,background=Color(0xFF101115),surface=Panel)){val vm:StudioViewModel=viewModel(factory=viewModelFactory{initializer{StudioViewModel(LocalStudioRepository(applicationContext),{callback->PcmAudioEngine(applicationContext,callback)})}});Studio(vm,this)}}}}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun Studio(vm:StudioViewModel,activity:ComponentActivity){
- val s by vm.state.collectAsStateWithLifecycle();val scope=rememberCoroutineScope();var volume by remember{mutableFloatStateOf(.7f)};var confirmChop by remember{mutableStateOf(false)};var splash by remember{mutableStateOf(true)};var knob by remember{mutableIntStateOf(-1)};var knobValue by remember{mutableFloatStateOf(0f)}
+ val s by vm.state.collectAsStateWithLifecycle();val scope=rememberCoroutineScope();var volume by remember{mutableFloatStateOf(.7f)};var confirmChop by remember{mutableStateOf(false)};var splash by remember{mutableStateOf(true)};var knob by remember{mutableIntStateOf(-1)};var knobValue by remember{mutableFloatStateOf(0f)};var bar by rememberSaveable{mutableIntStateOf(0)};var erase by remember{mutableStateOf(false)}
+ LaunchedEffect(s.project.master){volume=s.project.master}
+ LaunchedEffect(s.pattern.steps.size){bar=bar.coerceAtMost(s.pattern.steps.size/16-1)}
  LaunchedEffect(Unit){delay(1200);splash=false}
  DisposableEffect(activity){val o=LifecycleEventObserver{_,event->if(event==Lifecycle.Event.ON_STOP)vm.stop()};activity.lifecycle.addObserver(o);onDispose{activity.lifecycle.removeObserver(o)}}
  val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->if(granted)vm.record()else vm.message("Permita o microfone nas configurações para gravar. Os pads continuam disponíveis.")}
  val importer=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch{try{val bytes=withContext(Dispatchers.IO){activity.contentResolver.openInputStream(uri)?.use{val output=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192);while(true){val n=it.read(buffer);if(n<0)break;require(output.size()+n<=4_000_000){"Arquivo grande demais"};output.write(buffer,0,n)};output.toByteArray()}?:error("Não foi possível abrir")};vm.import(bytes)}catch(e:Exception){vm.message(e.message?:"Falha na importação")}}}
- val exporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("audio/wav")){uri->if(uri!=null)scope.launch{try{val bytes=vm.export();withContext(Dispatchers.IO){activity.contentResolver.openOutputStream(uri)?.use{it.write(bytes)}?:error("Destino indisponível")};vm.message("WAV exportado — um compasso de 4 tempos") }catch(e:Exception){vm.message("Exportação falhou: ${e.message}")}}}
+ val exporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("audio/wav")){uri->if(uri!=null)scope.launch{try{val bytes=vm.export();withContext(Dispatchers.IO){activity.contentResolver.openOutputStream(uri)?.use{it.write(bytes)}?:error("Destino indisponível")};vm.message("Mix estéreo exportado com ${s.pattern.steps.size/16} compassos") }catch(e:Exception){vm.message("Exportação falhou: ${e.message}")}}}
+ val stemsExporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")){uri->if(uri!=null)scope.launch{try{withContext(Dispatchers.IO){activity.contentResolver.openOutputStream(uri)?.use{vm.exportStems(it)}?:error("Destino indisponível")};vm.message("16 pistas WAV exportadas em ZIP") }catch(e:Exception){vm.message("Exportação falhou: ${e.message}")}}}
  val snack=remember{SnackbarHostState()};LaunchedEffect(s.message){s.message?.let{snack.showSnackbar(it);vm.dismiss()}}
  if(splash){Box(Modifier.fillMaxSize().background(Color(0xFF101115)),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally){Image(painterResource(R.drawable.ic_brand),contentDescription="breda_dev",modifier=Modifier.size(108.dp));LinearProgressIndicator(Modifier.width(160.dp));Text("BREDA BEATS",color=Amber,fontSize=24.sp);Text("Do sample à sua próxima batida",color=Color.LightGray)}};return}
- Scaffold(snackbarHost={SnackbarHost(snack)},bottomBar={NavigationBar{listOf("PADS","SAMPLE","PATTERN","PROJETO").forEachIndexed{i,n->NavigationBarItem(selected=s.page==i,onClick={vm.page(i)},icon={Text(listOf("▦","∿","▥","BD")[i])},label={Text(n,fontSize=10.sp)})}}}){padding->
+ Scaffold(snackbarHost={SnackbarHost(snack)},bottomBar={NavigationBar{listOf("PADS","SAMPLE","PISTAS","MIXER","PROJETO").forEachIndexed{i,n->NavigationBarItem(selected=s.page==i,onClick={vm.page(i)},icon={Text(listOf("▦","∿","▥","≋","BD")[i])},label={Text(n,fontSize=10.sp)})}}}){padding->
  Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("breda_dev",color=Purple,fontSize=12.sp);Text("BEATS / 01",fontWeight=FontWeight.Black,fontSize=26.sp)};Column(horizontalAlignment=Alignment.End){Text("SAMPLING WORKSTATION",fontSize=9.sp,color=Color.Gray);Text("${s.pattern.bpm} BPM",color=Amber,fontFamily=FontFamily.Monospace)}}
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={vm.undo()},enabled=s.canUndo && !s.busy && !s.recordPads && !s.recording,modifier=Modifier.weight(1f)){Text("↶ UNDO",fontSize=11.sp)};OutlinedButton(onClick={vm.redo()},enabled=s.canRedo && !s.busy && !s.recordPads && !s.recording,modifier=Modifier.weight(1f)){Text("↷ REDO",fontSize=11.sp)}}
+ MicPanel(s,vm){if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)vm.record() else permission.launch(Manifest.permission.RECORD_AUDIO)}
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){listOf("VOLUME","BPM","GAIN","DRIVE").forEachIndexed{i,name->Dial(name,listOf(volume,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]){knob=i;knobValue=listOf(volume,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]}}}
  if(s.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
  Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF090C10)),border=BorderStroke(1.dp,Color(0xFF41444D))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("A • ${s.pad+1}  ${Kit.names[s.pad]}",color=Amber,fontFamily=FontFamily.Monospace);Text(if(s.recording)"● REC" else if(s.playing)"▶ ${s.step+1}/16" else "READY",color=if(s.recording)Color.Red else Purple)}
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("A • ${s.pad+1}  ${s.project.names[s.pad]}",color=Amber,fontFamily=FontFamily.Monospace);Text(if(s.recording)"● REC" else if(s.playing)"▶ ${s.step+1}/${s.pattern.steps.size}" else "READY",color=if(s.recording)Color.Red else Purple)}
  Wave(s.samples[s.pad],s.start,s.end)
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("${"%.2f".format(s.samples[s.pad].pcm.size.toDouble()/s.samples[s.pad].rate)} s  /  PCM",fontSize=10.sp,color=Color.Gray);Text("${if(s.loop)"LOOP" else "ONE SHOT"}  ${if(s.gate)"GATE" else "TRIGGER"}",fontSize=10.sp,color=Amber)}
  }}
  when(s.page){0->{
- Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Control(if(s.playing)"STOP" else "PLAY",s.playing,Modifier.weight(1f)){vm.toggle()};Control(if(s.recording)"END REC" else "REC",s.recording,Modifier.weight(1f)){if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)vm.record() else permission.launch(Manifest.permission.RECORD_AUDIO)};Control("IMPORT",false,Modifier.weight(1f)){importer.launch(arrayOf("audio/wav","audio/x-wav"))}}
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Control(if(s.playing)"STOP" else "PLAY",s.playing,Modifier.weight(1f)){vm.toggle()};Control(if(s.recordPads)"END TAKE" else "REC PADS",s.recordPads,Modifier.weight(1f)){vm.recordPads()};Control("IMPORT",false,Modifier.weight(1f)){importer.launch(arrayOf("audio/wav","audio/x-wav"))}}
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Control("LOOP",s.loop,Modifier.weight(1f)){vm.loop()};Control("GATE",s.gate,Modifier.weight(1f)){vm.gate()};Control("STOP ALL",false,Modifier.weight(1f)){vm.stop()}}
  Text("BANK A  /  16 PADS",fontSize=11.sp,color=Purple,fontWeight=FontWeight.Bold)
  for(row in 0..3){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){for(col in 0..3){val pad=row*4+col;Pad(pad,s.pad==pad,Modifier.weight(1f),vm)}}}
  Text("Toque para disparar • segure em GATE • toque STOP ALL para encerrar loops",fontSize=11.sp,color=Color.Gray)
- Text("MASTER",fontSize=10.sp,color=Amber);Slider(volume,onValueChange={volume=it;vm.volume(it)})
+ Text("MASTER",fontSize=10.sp,color=Amber);Slider(volume,onValueChange={volume=it;vm.volume(it)},onValueChangeFinished={vm.master(volume)})
  };1->{
  Text("SAMPLE EDIT",color=Amber,fontWeight=FontWeight.Bold);Text("Edite o pad ${s.pad+1}. Alterações são aplicadas ao confirmar.",color=Color.LightGray,fontSize=12.sp)
  var range by remember(s.pad,s.samples){mutableStateOf(s.start..s.end)}
@@ -76,23 +82,32 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  OutlinedButton(onClick={confirmChop=true},enabled=!s.busy){Text("CHOP → 16 PADS")}
  Text("CHOP substitui todos os pads por 16 cortes iguais. WAV PCM 16 bits, mono/estéreo, até 10 segundos por pad.",fontSize=12.sp,color=Color.Gray)
  };2->{
- Text("PATTERN SEQUENCER",color=Amber,fontWeight=FontWeight.Bold)
+ Text("GRAVAÇÃO MULTIPISTAS",color=Amber,fontWeight=FontWeight.Bold)
+ Text("16 pistas • ${s.pattern.steps.size/16} compassos • overdub quantizado em 1/16",fontSize=12.sp,color=Purple)
+ Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){Control(if(s.recordPads)"END TAKE" else "REC PADS",s.recordPads,Modifier.weight(1f)){vm.recordPads()};Control("ERASE PISTA",false,Modifier.weight(1f)){erase=true}}
+ Row(verticalAlignment=Alignment.CenterVertically){OutlinedButton(onClick={vm.bars((s.pattern.steps.size/16-1).coerceAtLeast(1))},enabled=!s.busy && !s.recordPads){Text("−")};Text(" ${s.pattern.steps.size/16} compassos ",Modifier.weight(1f));OutlinedButton(onClick={vm.bars((s.pattern.steps.size/16+1).coerceAtMost(8))},enabled=!s.busy && !s.recordPads){Text("+")}}
+ Row(Modifier.horizontalScroll(rememberScrollState())){for(b in 0 until s.pattern.steps.size/16){OutlinedButton(onClick={bar=b},modifier=Modifier.padding(end=4.dp)){Text("${b+1}",color=if(bar==b)Amber else Color.Gray)}}}
+ TrackOverview(s,bar.coerceAtMost(s.pattern.steps.size/16-1),vm)
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Control("− BPM",false,Modifier.weight(1f)){vm.tempo(s.pattern.bpm-1)};Control("+ BPM",false,Modifier.weight(1f)){vm.tempo(s.pattern.bpm+1)};Control(if(s.playing)"STOP" else "PLAY",s.playing,Modifier.weight(1f)){vm.toggle()}}
- Text("PAD ${s.pad+1} • ${Kit.names[s.pad]} • passos em semicolcheias",fontSize=12.sp,color=Purple)
+ Text("PAD ${s.pad+1} • ${s.project.names[s.pad]} • passos em semicolcheias",fontSize=12.sp,color=Purple)
  Row(Modifier.horizontalScroll(rememberScrollState())){for(p in 0..15){OutlinedButton(onClick={vm.select(p)},modifier=Modifier.padding(end=4.dp)){Text("${p+1}")}}}
- for(row in 0..3){Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){for(col in 0..3){val i=row*4+col;Control("${i+1}",s.pad in s.pattern.steps[i],Modifier.weight(1f).border(if(s.step==i)2.dp else 0.dp,Purple,RoundedCornerShape(8.dp))){vm.step(i)}}}}
+ for(row in 0..3){Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){for(col in 0..3){val i=bar.coerceAtMost(s.pattern.steps.size/16-1)*16+row*4+col;Control("${i%16+1}",s.pad in s.pattern.steps[i],Modifier.weight(1f).border(if(s.step==i)2.dp else 0.dp,Purple,RoundedCornerShape(8.dp))){vm.step(i)}}}}
  var swing by remember(s.pattern.swing){mutableFloatStateOf(s.pattern.swing)};Text("SWING ${"%.0f".format(swing*100)}%",color=Amber);Slider(swing,{swing=it},onValueChangeFinished={vm.swing(swing)},valueRange=0f..0.45f)
  Button(onClick={exporter.launch("breda-beats-${s.pattern.bpm}bpm.wav")},enabled=!s.busy){Text("EXPORTAR BATIDA WAV")}
- };3->{
+ };3->{MixerScreen(s,vm)};4->{
  Text("SEU ESTÚDIO, SEU SOM",fontWeight=FontWeight.Black,fontSize=24.sp,color=Purple)
- Text("Um projeto local • Banco A • 16 pads • 1 compasso\nSalvamento automático de samples e padrão",color=Color.LightGray)
+ Text("${s.project.title}\n16 pistas • ${s.pattern.steps.size/16} compassos • mix estéreo\nSalvamento automático, UNDO/REDO e stems",color=Color.LightGray)
+ var title by remember(s.project.title){mutableStateOf(s.project.title)};OutlinedTextField(title,{title=it.take(80)},label={Text("Nome do projeto")});OutlinedButton(onClick={vm.title(title)},enabled=!s.busy){Text("SALVAR NOME")}
  Text("Kit original sintetizado pela breda_dev. Importe samples que você tenha direito de usar. Grave o microfone por até 10 segundos; ao sair do app a gravação é descartada.",fontSize=13.sp)
  Button(onClick={exporter.launch("breda-beats-${s.pattern.bpm}bpm.wav")},enabled=!s.busy){Text("EXPORTAR WAV")}
  OutlinedButton(onClick={importer.launch(arrayOf("audio/wav","audio/x-wav"))}){Text("IMPORTAR PARA PAD ${s.pad+1}")}
+ Button(onClick={stemsExporter.launch("breda-beats-${s.pattern.bpm}bpm-stems.zip")},enabled=!s.busy){Text("EXPORTAR 16 PISTAS WAV (ZIP)")}
  Text("Inspirado no fluxo de samplers de mesa. Produto independente breda_dev. Use fones com fio para gravar e tocar; Bluetooth pode acrescentar atraso. Latência depende do aparelho. Não há login, nuvem, compras ou anúncios nesta versão.",fontSize=12.sp,color=Color.Gray)
  }}
  }}
- if(knob>=0)AlertDialog(onDismissRequest={knob=-1},title={Text(listOf("VOLUME","BPM","SAMPLE GAIN","SAMPLE DRIVE")[knob])},text={Column{Slider(knobValue,{knobValue=it});Text(if(knob==1)"${40+(knobValue*160).toInt()} BPM" else "${(knobValue*100).toInt()}%")}},confirmButton={TextButton(onClick={when(knob){0->{volume=knobValue;vm.volume(volume)};1->vm.tempo(40+(knobValue*160).toInt());2->{vm.gain(knobValue*2);vm.page(1)};3->{vm.drive(knobValue);vm.page(1)}};knob=-1}){Text("AJUSTAR")}})
+ if(knob>=0)AlertDialog(onDismissRequest={knob=-1},title={Text(listOf("VOLUME","BPM","SAMPLE GAIN","SAMPLE DRIVE")[knob])},text={Column{Slider(knobValue,{knobValue=it});Text(if(knob==1)"${40+(knobValue*160).toInt()} BPM" else "${(knobValue*100).toInt()}%")}},confirmButton={TextButton(onClick={when(knob){0->{volume=knobValue;vm.master(volume)};1->vm.tempo(40+(knobValue*160).toInt());2->{vm.gain(knobValue*2);vm.page(1)};3->{vm.drive(knobValue);vm.page(1)}};knob=-1}){Text("AJUSTAR")}})
+ if(erase)AlertDialog(onDismissRequest={erase=false},title={Text("Apagar notas da pista ${s.pad+1}?")},text={Text("O sample permanece. UNDO restaura as notas desta pista em todos os compassos.")},confirmButton={TextButton(onClick={vm.eraseTrack();erase=false}){Text("ERASE")}},dismissButton={TextButton(onClick={erase=false}){Text("CANCELAR")}})
+ s.pendingTake?.let{take->AlertDialog(onDismissRequest={vm.discardTake()},title={Text("Manter gravação no pad ${s.takePad+1}?")},text={Column{Wave(take,0f,1f);Text("${"%.2f".format(take.pcm.size.toDouble()/take.rate)} segundos. Nada será substituído sem sua confirmação.")}},confirmButton={TextButton(onClick={vm.acceptTake()},enabled=!s.busy){Text("MANTER")}},dismissButton={TextButton(onClick={vm.discardTake()}){Text("DESCARTAR")}})}
  s.error?.let{AlertDialog(onDismissRequest={vm.dismiss()},title={Text("Estúdio indisponível")},text={Text(it)},confirmButton={TextButton(onClick={vm.dismiss()}){Text("FECHAR")}})}
  if(confirmChop)AlertDialog(onDismissRequest={confirmChop=false},title={Text("Substituir os 16 pads?")},text={Text("O sample atual será dividido em 16 cortes. Os samples anteriores serão substituídos e o padrão será preservado.")},confirmButton={TextButton(onClick={vm.chop();confirmChop=false}){Text("DIVIDIR")}},dismissButton={TextButton(onClick={confirmChop=false}){Text("CANCELAR")}})
 }

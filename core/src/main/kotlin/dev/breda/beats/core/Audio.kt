@@ -3,7 +3,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.*
 data class Sample(val pcm: FloatArray, val rate: Int = 44100) {
- init { require(rate in 8000..96000); require(pcm.isNotEmpty()); require(pcm.size <= rate * 10) }
+ init { require(rate in 8000..96000); require(pcm.isNotEmpty()); require(pcm.size <= rate * 120) }
  fun edit(start: Float, end: Float, reverse: Boolean, gain: Float, drive: Float): Sample {
   require(start >= 0f && end <= 1f && start < end){"Escolha um intervalo de corte válido"}; val a=(start*pcm.size).toInt().coerceAtMost(pcm.lastIndex); val b=(end*pcm.size).toInt().coerceAtLeast(a+1).coerceAtMost(pcm.size)
   val out=pcm.copyOfRange(a,b)
@@ -33,11 +33,11 @@ object Wav {
  }
 }
 data class Pattern(val bpm:Int=88, val swing:Float=0f, val steps:List<Set<Int>> = List(16){emptySet()}) {
- init { require(bpm in 40..200);require(swing in 0f..0.45f);require(steps.size==16);require(steps.all{it.all{p->p in 0..15}}) }
+ init { require(bpm in 40..200);require(swing in 0f..0.45f);require(steps.size in 16..128 && steps.size%16==0);require(steps.all{it.all{p->p in 0..15}}) }
  fun toggle(step:Int,pad:Int)=copy(steps=steps.mapIndexed{i,s->if(i==step)if(pad in s)s-pad else s+pad else s})
  fun stepSeconds(step:Int)=60.0/bpm/4*(if(step%2==0)1+swing else 1-swing)
  fun render(samples:List<Sample>):Sample {
-  require(samples.size==16);val rate=44100;val length=(60.0/bpm*4*rate).roundToInt();val out=FloatArray(length);var time=0.0
+  require(samples.size==16);val rate=44100;val length=(60.0/bpm*steps.size/4*rate).roundToInt();val out=FloatArray(length);var time=0.0
   steps.forEachIndexed { step,pads ->val offset=(time*rate).roundToInt();pads.forEach{p->val s=samples[p];val count=(s.pcm.size.toDouble()/s.rate*rate).toInt();for(i in 0 until min(count,length-offset)){val source=i.toDouble()*s.rate/rate;val a=source.toInt().coerceAtMost(s.pcm.lastIndex);val next=(a+1).coerceAtMost(s.pcm.lastIndex);out[offset+i]+=s.pcm[a]+(s.pcm[next]-s.pcm[a])*(source-a).toFloat()}};time+=stepSeconds(step)}
   val peak=out.maxOf{abs(it)};if(peak>.95f)for(i in out.indices)out[i]*=.95f/peak
   return Sample(out,rate)

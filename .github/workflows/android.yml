@@ -17,7 +17,7 @@ jobs:
           packages: 'platform-tools platforms;android-37.0 build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
-      - run: ./gradlew :core:test :androidApp:lintDebug :androidApp:assembleDebug --stacktrace
+      - run: ./gradlew :core:test :androidApp:testDebugUnitTest :androidApp:lintDebug :androidApp:assembleDebug --stacktrace
       - name: Sign and verify evaluation APK
         run: |
           mkdir -p "$HOME/.android"
@@ -40,4 +40,5 @@ jobs:
           name: breda-beats-check-reports
           path: |
             core/build/reports/tests/
+            androidApp/build/reports/tests/
             androidApp/build/reports/lint-results-debug.*

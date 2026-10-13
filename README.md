@@ -1,25 +1,32 @@
 # Breda Beats · breda_dev
 
-Android sampler and beat workstation with a hardware-inspired panel, original branding, 16 performance pads, microphone sampling, waveform trimming, equal slicing, reverse, gain, saturation, gate/loop playback, a 16-step pattern, BPM/swing controls and WAV export.
+Android sampler and 16-track beat studio: a SP-404MKII-inspired hardware panel with original breda_dev identity, pads, stereo channel mixer, quantized pad overdub, waveform editing, microphone sampling and WAV/stem export.
 
-## Run
-Android 8+, JDK17, SDK37.0 and committed Gradle9.4.1 wrapper.
-`./gradlew :core:test :androidApp:lintDebug :androidApp:assembleDebug`
-GitHub Actions produces a debug APK artifact. No signing key is committed; different runners may produce different debug certificates. Export test work before uninstalling an earlier build if signatures differ.
+## What's new in 0.2
+- UNDO/REDO for the last 20 committed edits in the current session: sample replacements, chop, destructive edits, volume/pan, mute/solo, notes, track erase and complete overdub takes. Failed saves never modify history. A new edit after undo clears the redo branch.
+- 16 channel strips with individual volume 0–100%, equal-power stereo pan, mute, solo, post-channel peak display and cue. Kick 70% and snare 100% remain independent. Master is stored with the project. Mix/export both apply channel settings.
+- 16 sample tracks, 1–8 bars (4/4), a piano-roll-style note matrix, per-track step editor, BPM/swing, quantized 1/16 live overdub and ERASE TRACK. Playback continues while committing mixer adjustments. One take is one undo action.
+- MIC starts OFF on every app launch. Enabling MIC does not start capture. REC PADS records touches only; REC SAMPLE requires MIC enabled and OS permission. Every mic take needs KEEP/DISCARD before replacing a sample. Disabling MIC/background stops and discards an in-progress capture. A generation token prevents a finishing old take from appearing after cancellation.
+- Export stereo PCM16 WAV 44.1kHz mix and a ZIP containing 16 aligned stereo WAV stems and session notes. Stems use current mute/solo, pan, channel levels and master; disabled tracks export silence. ZIP streams to the selected document rather than holding all stems in memory.
+- Atomic metadata plus immutable checksum-addressed sample files. Fader edits do not rewrite all audio. Existing schema1/2 projects migrate on successful save to schema3; invalid/corrupt files remain preserved.
 
-## Architecture
-Pure Kotlin `core` owns samples, strict PCM WAV codec, edit transforms, deterministic original synthesis and offline pattern rendering. Android `data` adapters provide atomic project persistence, AudioRecord capture and AudioTrack mixing. `StudioViewModel` injects the repository and exposes immutable StateFlow; Compose observes lifecycle state. Repository/Adapter, composition-root Factory and observer patterns serve actual boundaries.
+## Workflow
+1. Import WAV PCM16 mono/stereo (8–96kHz, up to10seconds per sample) or explicitly enable MIC and capture a take. Imported stereo is converted to mono; the mixer positions it in stereo.
+2. Select SAMPLE, trim/reverse/gain/drive, apply, or CHOP into16equal pieces. UNDO restores the previous samples.
+3. Select PISTAS, choose1–8bars, use REC PADS and finger-drum layers. END TAKE/STOP commits the quantized overdub; another take adds notes to the existing tracks. ERASE TRACK removes only its notes, not its audio, and can be undone.
+4. Use MIXER to name tracks, balance channels, pan, mute/solo and set master. Reduce levels if CLIP appears.
+5. Export a mix or stems to continue in Ableton Live, FL Studio or Logic. Keep sample rights in mind.
 
-## Scope and workflow
-One local project, bank A, 16 pads and one 4/4 bar. Select a pad and import WAV PCM16 mono/stereo (8–96kHz, up to10s); stereo is averaged to mono. REC captures microphone up to10s. SAMPLE trims/reverses and commits edits; CHOP confirms replacement of all16pads with equal slices. PATTERN selects pad tracks and toggles semiquavers; export renders one bar to mono PCM16 WAV44100Hz. Tails beyond the bar are cropped. Gain saturation applies destructively only when confirmed. No time-stretch, effect emulation, additional banks, MIDI, pitch control or cloud in this release.
+## Architecture and validation
+Pure Kotlin core contains codec, synthesis, edits, project/channel values, bounded command history, pattern logic and stereo render. Android adapters contain AudioTrack/AudioRecord and atomic file persistence. MVVM StateFlow separates presentation and lifecycle from audio and storage; injected repository/engine factories/dispatchers support deterministic ViewModel tests. Repository/Adapter, Factory, Observer and command-history patterns solve concrete boundaries.
 
-The panel is inspired by the workflow of tabletop samplers including SP-404MKII; this is an independent product without Roland affiliation, proprietary samples or visual assets. The included kit is synthesized by source code.
+JDK17, SDK37.0, Kotlin2.4.21, AGP9.2.1, Gradle9.4.1; compatible pinned versions. Android8+.
+`./gradlew :core:test :androidApp:testDebugUnitTest :androidApp:lintDebug :androidApp:assembleDebug`
+GitHub Actions signs/verifies a debug APK and uploads APK/check reports. No signing keys are committed. Different runs may require uninstalling an older debug APK because certificates differ. **Export your existing audio before uninstalling; uninstall removes private projects.** Commercial signing requires a separate private owner-controlled key.
 
-## Audio and privacy
-32-voice Kotlin mixer using a dedicated audio-priority thread; pattern events are scheduled by output frames, independent of Compose animation. No measured/professional latency claim; validate on device and use wired headphones. Audio focus interruption stops playback; focus, background stop and recording interruption still need device verification. RECORD_AUDIO is requested only for REC. No internet/ads/analytics/accounts/billing. Project is stored privately through AtomicFile. Corrupt project remains preserved and editing is blocked if load fails. Background stops transport/loops and discards unfinished recording. No background microphone service. Import/export uses document picker.
+## Honest product boundaries
+This is a sample-based beat studio, not a full desktop DAW or Koala/Roland emulation. One workspace, bank A, 16 tracks, up to8bars and10s per captured/imported sample. No long vocal timeline recording, song arrangement across patterns, instruments/plugins, MIDI, time-stretch, calibrated latency compensation or effect buses yet. Loop/gate apply to live pad performance; sequenced/exported notes use one-shot playback. Undo history and pending mic takes are session-only; committed project/audio survive restart. Unused sample files are retained to avoid destructive cleanup.
 
-## Validation
-Seven meaningful domain tests cover malformed WAV, PCM roundtrip, swing duration, pattern events/render, sample edits and invalid tempo. GitHub build/device validation status must be checked on Actions; no listening tests have yet been performed. UI evaluation: simultaneous taps, loop/gate, permission denial, mic start/stop/10s/background, WAV invalid input, waveform cuts, chop confirmation, automatic project recovery and exported audio.
+The Kotlin PCM engine has32live voices, frame-clock sequencing and stereo interpolation, on an audio-priority worker. Output bounds hard-clip; this is not a mastering limiter. Offline rendering includes all scheduled voices, so dense overlapping patterns exceeding32voices can differ from live playback. No measured latency claim; evaluate touch/audio on the actual phone with wired headphones. Exports crop tails at the end of the final bar. Meter display is a sampled peak indicator, not calibrated loudness metering. No background recording, internet, analytics, ads, authentication or payments. Device tests and listening tests remain necessary.
 
-## Product next steps
-Multiple projects/banks, audio focus routing and interruption handling, native Oboe engine measured on devices, nondestructive effect buses, realtime recording/undo, true waveform scrub, persistence migration and product monetization require additional work. This release does not charge users.
+Original kit is synthesized from source. Product is independently built by breda_dev, without Roland affiliation or proprietary sound/visual assets.
