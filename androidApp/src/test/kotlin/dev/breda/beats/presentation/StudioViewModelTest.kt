@@ -76,4 +76,9 @@ class StudioViewModelTest {
         vm.countIn(CountInMode.NONE);vm.recordPads();assertTrue(vm.state.value.recordPads);vm.stop();runCurrent()
         vm.countIn(CountInMode.ONE_BAR);vm.recordPads();runCurrent();assertEquals(4,vm.state.value.countdown);assertFalse(vm.state.value.recordPads)
     }
+    @Test fun micOffDuringPreparationNeverStartsCapture()=scenario {vm,_->
+        vm.enableMic();vm.record();runCurrent();assertTrue(vm.state.value.countdownMic);assertFalse(vm.state.value.recording)
+        advanceTimeBy(1000);vm.enableMic();runCurrent();advanceTimeBy(4000);runCurrent()
+        assertFalse(vm.state.value.micEnabled);assertFalse(vm.state.value.recording);assertEquals(0,vm.state.value.countdown);assertNull(vm.state.value.pendingTake);assertNull(vm.state.value.error)
+    }
 }

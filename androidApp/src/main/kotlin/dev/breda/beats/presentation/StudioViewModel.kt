@@ -112,7 +112,7 @@ class StudioViewModel(
     fun countIn(mode:CountInMode){if(state.value.countdown==0 && !state.value.recordPads && !state.value.recording)update{it.copy(countInMode=mode)}}
     private fun prepare(mic:Boolean,ready:()->Unit){
         val ticks=CountIn.ticks(state.value.countInMode,state.value.pattern.bpm)
-        engine?.stopAll()
+        engine?.stopAll();update{it.copy(playing=false)}
         if(ticks.isEmpty()){ready();return}
         update{it.copy(countdown=ticks.first().number,countdownMic=mic,playing=false)}
         countInJob=viewModelScope.launch{
