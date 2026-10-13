@@ -58,15 +58,11 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Scaffold(snackbarHost={SnackbarHost(snack)},bottomBar={NavigationBar{listOf("PADS","SAMPLE","PISTAS","MIXER","PROJETO").forEachIndexed{i,n->NavigationBarItem(selected=s.page==i,onClick={vm.page(i)},icon={Text(listOf("▦","∿","▥","≋","BD")[i])},label={Text(n,fontSize=10.sp)})}}}){padding->
  if(s.page==0)PerformanceScreen(s,vm,Modifier.padding(padding),onKnob={i->knob=i;knobValue=listOf(volume,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]},onImport={importer.launch(arrayOf("audio/wav","audio/x-wav"))},onMicRecord={if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)vm.record() else permission.launch(Manifest.permission.RECORD_AUDIO)})
  else Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("breda_dev",color=Purple,fontSize=12.sp);Text("BEATS / 01",fontWeight=FontWeight.Black,fontSize=26.sp)};Column(horizontalAlignment=Alignment.End){Text("SAMPLING WORKSTATION",fontSize=9.sp,color=Color.Gray);Text("${s.pattern.bpm} BPM",color=Amber,fontFamily=FontFamily.Monospace)}}
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column{Text("breda_dev",color=Purple,fontSize=12.sp);Text("BEATS / 04",fontWeight=FontWeight.Black,fontSize=26.sp)};Column(horizontalAlignment=Alignment.End){Text("SAMPLING WORKSTATION",fontSize=9.sp,color=Color.Gray);Text("${s.pattern.bpm} BPM",color=Amber,fontFamily=FontFamily.Monospace)}}
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={vm.undo()},enabled=s.canUndo && !s.busy && !s.recordPads && !s.recording,modifier=Modifier.weight(1f)){Text("↶ UNDO",fontSize=11.sp)};OutlinedButton(onClick={vm.redo()},enabled=s.canRedo && !s.busy && !s.recordPads && !s.recording,modifier=Modifier.weight(1f)){Text("↷ REDO",fontSize=11.sp)}}
- CountInControls(s,vm)
- if(s.countdown>0)Text("PREPARAR ${s.countdown}",fontSize=24.sp,color=Purple)
- Row(verticalAlignment=Alignment.CenterVertically){Text("Metrônomo ${s.pattern.bpm} BPM",Modifier.weight(1f));Switch(s.metronome,{if(it!=s.metronome)vm.metronome()})}
- MicPanel(s,vm){if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)vm.record() else permission.launch(Manifest.permission.RECORD_AUDIO)}
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){listOf("VOLUME","BPM","GAIN","DRIVE").forEachIndexed{i,name->Dial(name,listOf(volume,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]){knob=i;knobValue=listOf(volume,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]}}}
+ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={vm.toggle()},enabled=!s.busy && !s.recording,modifier=Modifier.weight(1f)){Text(if(s.playing)"PAUSE" else "PLAY")};OutlinedButton(onClick={vm.stop()},modifier=Modifier.weight(1f)){Text("STOP")}}
  if(s.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
- Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF090C10)),border=BorderStroke(1.dp,Color(0xFF41444D))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+ if(s.page==1)Card(colors=CardDefaults.cardColors(containerColor=Color(0xFF090C10)),border=BorderStroke(1.dp,Color(0xFF41444D))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("A • ${s.pad+1}  ${s.project.names[s.pad]}",color=Amber,fontFamily=FontFamily.Monospace);Text(if(s.recording)"● REC" else if(s.playing)"▶ ${s.step+1}/${s.pattern.steps.size}" else "READY",color=if(s.recording)Color.Red else Purple)}
  Wave(s.samples[s.pad],s.start,s.end)
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("${"%.2f".format(s.samples[s.pad].pcm.size.toDouble()/s.samples[s.pad].rate)} s  /  PCM",fontSize=10.sp,color=Color.Gray);Text("${if(s.loop)"LOOP" else "ONE SHOT"}  ${if(s.gate)"GATE" else "TRIGGER"}",fontSize=10.sp,color=Amber)}
@@ -82,6 +78,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  OutlinedButton(onClick={confirmChop=true},enabled=!s.busy){Text("CHOP → 16 PADS")}
  Text("CHOP substitui todos os pads por 16 cortes iguais. WAV PCM 16 bits, mono/estéreo, até 60 segundos por pad.",fontSize=12.sp,color=Color.Gray)
  };2->{
+ CountInControls(s,vm)
  SequencePanel(s,vm){songExporter.launch("breda-beats-song.wav")}
  Text("GRAVAÇÃO MULTIPISTAS",color=Amber,fontWeight=FontWeight.Bold)
  Text("16 pistas • ${s.pattern.steps.size/16} compassos • overdub quantizado em 1/16",fontSize=12.sp,color=Purple)
@@ -98,6 +95,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  };3->{EffectsPanel(s,vm);MixerScreen(s,vm)};4->{
  Button(onClick={backupExporter.launch("breda-beats-project.zip")},enabled=!s.busy && !s.recording && !s.playing){Text("BACKUP PROJETO EDITÁVEL")}
  OutlinedButton(onClick={backupImporter.launch(arrayOf("application/zip"))},enabled=!s.busy && !s.recording && !s.playing){Text("ABRIR BACKUP DE PROJETO")}
+ CountInControls(s,vm)
+ MicPanel(s,vm){if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)vm.record() else permission.launch(Manifest.permission.RECORD_AUDIO)}
  Text("SEU ESTÚDIO, SEU SOM",fontWeight=FontWeight.Black,fontSize=24.sp,color=Purple)
  Text("${s.project.title}\n16 pistas • ${s.pattern.steps.size/16} compassos • mix estéreo\nSalvamento automático, UNDO/REDO e stems",color=Color.LightGray)
  var title by remember(s.project.title){mutableStateOf(s.project.title)};OutlinedTextField(title,{title=it.take(80)},label={Text("Nome do projeto")});OutlinedButton(onClick={vm.title(title)},enabled=!s.busy){Text("SALVAR NOME")}

@@ -72,9 +72,10 @@ jobs:
             adb install $(find ui-apks -name '*debug.apk' ! -name '*androidTest*' | head -1)
             adb install $(find ui-apks -name '*androidTest.apk' | head -1)
             adb shell am instrument -w -r dev.breda.beats.debug.test/androidx.test.runner.AndroidJUnitRunner | tee ui-test-result.txt
-            grep -q 'OK (2 tests)' ui-test-result.txt
+            grep -q 'OK (3 tests)' ui-test-result.txt
             adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-portrait.png .
             adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-landscape.png .
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-pad-editor.png .
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -83,3 +84,4 @@ jobs:
             ui-test-result.txt
             ui-portrait.png
             ui-landscape.png
+            ui-pad-editor.png

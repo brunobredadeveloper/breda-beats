@@ -33,6 +33,16 @@ class FixedPadsTest {
         File(compose.activity.getExternalFilesDir(null),filename).outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
         screenshot.recycle()
     }
+    @Test fun longPressOpensPadControls(){
+        verify(Configuration.ORIENTATION_PORTRAIT,"ui-portrait.png")
+        compose.waitUntil(15000){compose.onNodeWithTag("record-status").fetchSemanticsNode().config[SemanticsProperties.Text].any{it.text=="READY"}}
+        compose.onNodeWithTag("pad-1").performTouchInput{longClick()}
+        compose.onNodeWithText("VOLUME 100%").assertIsDisplayed()
+        compose.onNodeWithText("PAD 1 ·",substring=true).assertExists()
+        val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.getExternalFilesDir(null),"ui-pad-editor.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+        screenshot.recycle()
+    }
     @Test fun sixteenPadsStayVisiblePortrait(){verify(Configuration.ORIENTATION_PORTRAIT,"ui-portrait.png")}
     @Test fun sixteenPadsStayVisibleLandscape(){verify(Configuration.ORIENTATION_LANDSCAPE,"ui-landscape.png")}
 }
