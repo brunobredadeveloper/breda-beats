@@ -7,7 +7,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     buildTypes {
         debug { signingConfig = signingConfigs.getByName("debug"); applicationIdSuffix = ".debug"; versionNameSuffix = "-debug"; resValue("string", "app_name", "Breda Beats · avaliação") }
-        create("preview") { initWith(getByName("debug")); applicationIdSuffix = ".preview04"; versionNameSuffix = "-preview"; resValue("string", "app_name", "Breda Beats Studio 0.5"); matchingFallbacks += listOf("debug") }
+        create("preview") { initWith(getByName("debug")); applicationIdSuffix = ".preview05"; versionNameSuffix = "-preview"; resValue("string", "app_name", "Breda Beats Studio 0.5"); matchingFallbacks += listOf("debug") }
         release { isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }
     }
 }
