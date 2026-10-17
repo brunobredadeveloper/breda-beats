@@ -154,7 +154,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
         else->"${(ctrl1*100).toInt()}%"
     }
     Surface(color=Color(0xFF17191F),shadowElevation=6.dp){
-        Column(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=4.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
+        Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)).padding(horizontal=10.dp,vertical=4.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
             Row(Modifier.fillMaxWidth().height(34.dp),verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f)){
                     Text("BREDA BEATS / 0.6",fontSize=12.sp,fontWeight=FontWeight.Black,color=Amber,maxLines=1,overflow=TextOverflow.Ellipsis)
