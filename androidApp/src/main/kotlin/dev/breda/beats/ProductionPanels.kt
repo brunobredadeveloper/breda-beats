@@ -96,17 +96,31 @@ private val Purple=Color(0xFFB197FC)
     var filter by remember(s.project.fx.filter){mutableFloatStateOf(s.project.fx.filter)}
     var drive by remember(s.project.fx.drive){mutableFloatStateOf(s.project.fx.drive)}
     var delay by remember(s.project.fx.delay){mutableFloatStateOf(s.project.fx.delay)}
+    var mode by remember(s.project.fx.mode){mutableStateOf(s.project.fx.mode)}
+    var amount by remember(s.project.fx.amount){mutableFloatStateOf(s.project.fx.amount)}
     val enabled=!s.busy && !s.recording && s.countdown==0
-    fun settings()=FxSettings(filter,drive,delay)
+    fun settings()=FxSettings(filter,drive,delay,mode,amount)
     Text("PERFORM FX · MASTER",color=Mint,fontWeight=FontWeight.Bold,fontSize=20.sp)
+    Text("FX DE PERFORMANCE",fontSize=12.sp,color=Purple)
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+        FxMode.entries.forEach{choice->
+            FilterChip(selected=mode==choice,onClick={mode=choice;vm.effect(settings())},enabled=enabled,label={Text(choice.label,fontSize=10.sp)})
+        }
+    }
+    if(mode!=FxMode.STUDIO){
+        val valueLabel=if(mode==FxMode.FILTER_SWEEP)"${(80+amount*amount*15920).toInt()} Hz" else "${(amount*100).toInt()}%"
+        Text("${mode.label} · $valueLabel",fontSize=12.sp)
+        Slider(amount,{amount=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
+        Text(mode.description,fontSize=11.sp,color=Color.Gray)
+    }
     Text("LOW-PASS ${if(filter>=.999f)"BYPASS" else "${(40+filter*filter*17960).toInt()} Hz"}",fontSize=12.sp)
     Slider(filter,{filter=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
     Text("SATURATION ${(drive*100).toInt()}%",fontSize=12.sp)
     Slider(drive,{drive=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
     Text("DELAY 1/8 · ${(delay*100).toInt()}%",fontSize=12.sp)
     Slider(delay,{delay=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
-    OutlinedButton(onClick={vm.effect(FxSettings())},enabled=enabled){Text("RESET FX")}
-    Text("Efeitos na mix estéreo e na música. Stems são exportados sem o FX do master para mixagem no computador. Movimentos não são gravados como automação.",fontSize=11.sp,color=Color.Gray)
+    OutlinedButton(onClick={filter=1f;drive=0f;delay=0f;mode=FxMode.STUDIO;amount=.55f;vm.effect(FxSettings())},enabled=enabled){Text("RESET FX")}
+    Text("Os efeitos atuam na mix estéreo e na música. Stems são exportados sem o FX do master para mixagem no computador. Movimentos não são gravados como automação.",fontSize=11.sp,color=Color.Gray)
     Button(onClick={confirmResample=true},enabled=enabled && !s.playing){Text("RESAMPLE S${s.project.slot+1} → PAD ${s.pad+1}")}
     if(confirmResample)AlertDialog(onDismissRequest={confirmResample=false},title={Text("Substituir pad ${s.pad+1} pelo resample?")},text={Text("A sequência será renderizada com sua mixagem e efeitos. Faça um backup para guardar o projeto atual.")},confirmButton={TextButton(onClick={vm.resample();confirmResample=false}){Text("RESAMPLE")}},dismissButton={TextButton(onClick={confirmResample=false}){Text("CANCELAR")}})
     Text("Resample gera áudio interno com o FX e a mixagem, sem usar o microfone. Substitui o pad selecionado; UNDO restaura. Pare o transporte antes de resamplear.",fontSize=11.sp,color=Color.Gray)
