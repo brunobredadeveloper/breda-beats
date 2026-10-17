@@ -1,8 +1,13 @@
 package dev.breda.beats
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -10,6 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -117,21 +125,99 @@ private val PadColors=listOf(Color(0xFFF6B44E),Color(0xFFFF819D),Color(0xFF6EF5D
     Button(onClick=click,modifier=modifier.height(44.dp),shape=RoundedCornerShape(8.dp),contentPadding=PaddingValues(3.dp),colors=ButtonDefaults.buttonColors(containerColor=if(on)Gold else DarkPanel,contentColor=if(on)Color.Black else Gold)){Text(text,fontSize=9.sp,fontWeight=FontWeight.Bold,maxLines=1)}
 }
 @Composable private fun PadGrid(s:StudioState,vm:StudioViewModel,modifier:Modifier,edit:(Int)->Unit){
+    val playbackPattern=if(s.songPlaying)s.project.sequence(s.project.arrangement.getOrNull(s.songPosition)?:s.project.slot) else s.pattern
+    val activePads=if(s.playing && s.step>=0)playbackPattern.steps.getOrNull(s.step).orEmpty() else emptySet()
     Column(modifier.testTag("fixed-pad-grid"),verticalArrangement=Arrangement.spacedBy(6.dp)){
         for(row in 0..3)Row(Modifier.weight(1f).fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
-            for(col in 0..3){val pad=row*4+col;FixedPad(pad,s.project.names[pad],s.pad==pad,!s.busy && s.countdown==0 && !s.recording,Modifier.weight(1f).fillMaxHeight(),vm,s.padEditMode,s.project.channels[pad],s.recordPads,{edit(pad)})}
+            for(col in 0..3){
+                val pad=row*4+col
+                FixedPad(pad,s.project.names[pad],s.pad==pad,!s.busy && s.countdown==0 && !s.recording,Modifier.weight(1f).fillMaxHeight(),vm,s.padEditMode,s.project.channels[pad],s.recordPads,pad in activePads){edit(pad)}
+            }
         }
     }
 }
-@Composable private fun FixedPad(pad:Int,name:String,selected:Boolean,enabled:Boolean,modifier:Modifier,vm:StudioViewModel,editMode:Boolean,channel:Channel,recording:Boolean,edit:()->Unit){
+@Composable private fun FixedPad(pad:Int,name:String,selected:Boolean,enabled:Boolean,modifier:Modifier,vm:StudioViewModel,editMode:Boolean,channel:Channel,recording:Boolean,sequenceActive:Boolean,edit:()->Unit){
     val accent=PadColors[pad/4]
-    var pressed by remember{mutableStateOf(false)};val scale by animateFloatAsState(if(pressed).95f else 1f,label="Pad press")
-    BoxWithConstraints(modifier.scale(scale).testTag("pad-${pad+1}").background(if(pressed)accent else Color(0xFF191D25),RoundedCornerShape(10.dp)).border(if(selected)2.dp else 1.dp,if(selected)accent else accent.copy(alpha=.25f),RoundedCornerShape(10.dp)).semantics{contentDescription="Pad ${pad+1}, $name";role=Role.Button;onClick{if(enabled){if(editMode)edit() else{vm.hit(pad);vm.release(pad)}};enabled};onLongClick("Editar pad"){if(enabled && !recording)edit();enabled && !recording}}.pointerInput(pad,enabled,editMode,recording){detectTapGestures(onTap={if(enabled && editMode)edit()},onLongPress={if(enabled && !recording){pressed=false;vm.release(pad);edit()}},onPress={if(enabled && !editMode){pressed=true;vm.hit(pad);try{tryAwaitRelease()}finally{pressed=false;vm.release(pad)}}})}.padding(7.dp)){
-        Text("${pad+1}",fontSize=if(maxHeight<48.dp)18.sp else 26.sp,fontWeight=FontWeight.Black,color=if(pressed)Color.Black else accent,modifier=Modifier.align(Alignment.TopStart),maxLines=1)
+    var pressed by remember{mutableStateOf(false)}
+    var touchIntensity by remember{mutableFloatStateOf(.68f)}
+    val lit=pressed || sequenceActive
+    val light=when{pressed->(.38f+touchIntensity*.62f).coerceIn(0f,1f);sequenceActive->.84f;else->0f}
+    val padBackground by animateColorAsState(
+        targetValue=when{
+            pressed->lerp(Color(0xFF191D25),accent,.36f+.64f*touchIntensity)
+            sequenceActive->lerp(Color(0xFF191D25),accent,.68f)
+            else->Color(0xFF191D25)
+        },
+        animationSpec=tween(durationMillis=70),
+        label="Pad RGB"
+    )
+    val glow by animateDpAsState(
+        targetValue=if(lit)(5f+17f*light).dp else 0.dp,
+        animationSpec=tween(durationMillis=65),
+        label="Pad glow"
+    )
+    val scale by animateFloatAsState(if(pressed).96f else 1f,label="Pad press")
+    val borderColor=when{pressed->accent.copy(alpha=.7f+.3f*touchIntensity);sequenceActive->accent;selected->accent;else->accent.copy(alpha=.25f)}
+    BoxWithConstraints(
+        modifier
+            .scale(scale)
+            .shadow(glow,RoundedCornerShape(10.dp),clip=false,ambientColor=accent.copy(alpha=if(lit).42f else 0f),spotColor=accent.copy(alpha=if(lit).72f else 0f))
+            .testTag("pad-${pad+1}")
+            .background(padBackground,RoundedCornerShape(10.dp))
+            .border(if(lit || selected)2.dp else 1.dp,borderColor,RoundedCornerShape(10.dp))
+            .semantics{
+                contentDescription="Pad ${pad+1}, $name"
+                stateDescription=when{pressed->"Tocado, intensidade ${(touchIntensity*100).toInt()}%";sequenceActive->"Acionado pela pista";selected->"Selecionado";else->"Aguardando"}
+                role=Role.Button
+                onClick{
+                    if(enabled){
+                        if(editMode)edit() else {vm.hit(pad);vm.release(pad)}
+                    }
+                    enabled
+                }
+                onLongClick("Editar pad"){
+                    if(enabled && !recording){pressed=false;vm.release(pad);edit()}
+                    enabled && !recording
+                }
+            }
+            .pointerInput(pad,enabled,editMode,recording){
+                detectTapGestures(
+                    onTap={if(enabled && editMode)edit()},
+                    onLongPress={if(enabled && !recording){pressed=false;vm.release(pad);edit()}},
+                    onPress={
+                        if(enabled && !editMode){
+                            pressed=true
+                            vm.hit(pad)
+                            try{tryAwaitRelease()}finally{pressed=false;vm.release(pad)}
+                        }
+                    }
+                )
+            }
+            .pointerInput(pad,enabled,editMode,recording){
+                awaitEachGesture{
+                    val down=awaitFirstDown(requireUnconsumed=false,pass=PointerEventPass.Initial)
+                    if(enabled && !editMode && !recording){
+                        try{
+                            touchIntensity=normalizeTouchPressure(down.pressure)
+                            while(true){
+                                val change=awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull{it.id==down.id}?:break
+                                if(!change.pressed)break
+                                touchIntensity=normalizeTouchPressure(change.pressure)
+                            }
+                        }finally{
+                            touchIntensity=.68f
+                        }
+                    }
+                }
+            }
+            .padding(7.dp)
+    ){
+        Text("${pad+1}",fontSize=if(maxHeight<48.dp)18.sp else 26.sp,fontWeight=FontWeight.Black,color=if(lit)Color.Black else accent,modifier=Modifier.align(Alignment.TopStart),maxLines=1)
         if(channel.pitch!=0)Text("${if(channel.pitch>0)"+" else ""}${channel.pitch}",fontSize=9.sp,color=Violet,modifier=Modifier.align(Alignment.TopEnd))
-        if(maxHeight>=48.dp)Text("$name · ${(channel.level*100).toInt()}%",fontSize=8.sp,color=if(pressed)Color.Black else Color.LightGray,modifier=Modifier.align(Alignment.BottomStart),maxLines=1,overflow=TextOverflow.Ellipsis)
+        if(maxHeight>=48.dp)Text("$name · ${(channel.level*100).toInt()}%",fontSize=8.sp,color=if(lit)Color.Black else Color.LightGray,modifier=Modifier.align(Alignment.BottomStart),maxLines=1,overflow=TextOverflow.Ellipsis)
     }
 }
+private fun normalizeTouchPressure(value:Float):Float=if(value.isFinite() && value>.01f)value.coerceIn(.18f,1f) else .68f
 @Composable private fun MiniWave(sample:Sample,modifier:Modifier){
     val peaks=remember(sample){val chunk=max(1,sample.pcm.size/80);FloatArray(80){i->val a=i*chunk;val b=min(sample.pcm.size,a+chunk);if(a<b)(a until b).maxOf{abs(sample.pcm[it])}else 0f}}
     Canvas(modifier){peaks.forEachIndexed{i,v->val x=i*size.width/peaks.size;drawLine(Gold,Offset(x,size.height/2-v*size.height/2),Offset(x,size.height/2+v*size.height/2),2f)}}
