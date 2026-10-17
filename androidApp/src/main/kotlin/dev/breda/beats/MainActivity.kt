@@ -72,15 +72,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("${"%.2f".format(s.samples[s.pad].pcm.size.toDouble()/s.samples[s.pad].rate)} s  /  PCM",fontSize=10.sp,color=Color.Gray);Text("${if(s.loop)"LOOP" else "ONE SHOT"}  ${if(s.gate)"GATE" else "TRIGGER"}",fontSize=10.sp,color=Amber)}
  }}
  when(s.page){1->{
- Text("SAMPLE EDIT",color=Amber,fontWeight=FontWeight.Bold);Text("Edite o pad ${s.pad+1}. Alterações são aplicadas ao confirmar.",color=Color.LightGray,fontSize=12.sp)
- var range by remember(s.pad,s.samples){mutableStateOf(s.start..s.end)}
- RangeSlider(value=range,onValueChange={range=it;vm.trim(it.start,it.endInclusive)},valueRange=0f..1f)
- Row{Text("START ${"%.0f".format(s.start*100)}%",Modifier.weight(1f),color=Purple);Text("END ${"%.0f".format(s.end*100)}%",color=Purple)}
- Control("REVERSE",s.reverse){vm.reverse()};Text("GAIN",color=Amber);Slider(s.gain,{vm.gain(it)},valueRange=0f..2f)
- Text("DRIVE / SATURATION",color=Amber);Slider(s.drive,{vm.drive(it)},valueRange=0f..1f)
- Button(onClick={vm.applyEdit()},enabled=!s.busy && s.end>s.start){Text("APLICAR E SALVAR")}
- OutlinedButton(onClick={confirmChop=true},enabled=!s.busy){Text("CHOP → 16 PADS")}
- Text("CHOP substitui todos os pads por 16 cortes iguais. WAV PCM 16 bits, mono/estéreo, até 60 segundos por pad.",fontSize=12.sp,color=Color.Gray)
+ Text("SAMPLE EDIT",color=Amber,fontWeight=FontWeight.Bold);Text("Pad ${s.pad+1} · ajuste o recorte e o caráter do sample.",color=Color.LightGray,fontSize=12.sp)
+ SampleEditorControls(s,vm){confirmChop=true}
  };2->{
  CountInControls(s,vm)
  SequencePanel(s,vm){songExporter.launch("breda-beats-song.wav")}
