@@ -24,7 +24,7 @@ Use dados fictícios, em ambiente de avaliação.
 5. Escolha Vinyl Color, Lo-Fi, Room Reverb, Beat Repeat ou Filter Sweep no seletor FX fixo; use CTRL 1 para o parâmetro principal, CTRL 2 para drive e CTRL 3 para delay enquanto toca.
 6. Ajuste o mixer, exporte WAV/stems e salve também um ZIP editável.
 
-VOL controla o master. Em STUDIO, CTRL 1 ajusta o filtro; nos modos de performance, controla a intensidade do efeito ativo. CTRL 2 ajusta drive e CTRL 3 delay. PLAY, REC PADS e STOP permanecem visíveis ao navegar ou rolar. O arraste vertical altera os knobs; os parâmetros continuam disponíveis no Mixer.
+VOL controla o master. Em STUDIO, CTRL 1 ajusta o filtro; nos modos de performance, controla a intensidade do efeito ativo. CTRL 2 ajusta drive e CTRL 3 delay. PLAY, REC PADS e STOP permanecem visíveis ao navegar ou rolar. A faixa respeita as áreas seguras de status, recorte e navegação do Android. O arraste vertical altera os knobs; os parâmetros continuam disponíveis no Mixer.
 
 As escolhas de FX master ficam no backup do projeto. Backups anteriores continuam abrindo com a cadeia de estúdio padrão. Stems permanecem secos para mixagem externa.
 
