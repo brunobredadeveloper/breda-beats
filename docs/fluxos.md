@@ -6,7 +6,8 @@ Oferecer um fluxo compacto de produção de batidas com marca original e control
 
 | Tela / área | O que a pessoa faz | Referência de implementação |
 |---|---|---|
-| Pads | Tocar kit, preparar REC e controlar transporte. | [PerformanceScreen.kt](../androidApp/src/main/kotlin/dev/breda/beats/PerformanceScreen.kt) |
+| Faixa de performance fixa | VOL e CTRL 1–3, seletor rápido de FX, PLAY/REC/STOP e undo/redo em todas as telas. | [MainActivity.kt](../androidApp/src/main/kotlin/dev/breda/beats/MainActivity.kt) |
+| Pads | Tocar kit e preparar REC. | [PerformanceScreen.kt](../androidApp/src/main/kotlin/dev/breda/beats/PerformanceScreen.kt) |
 | Editor do pad | Ajustar volume, pan, pitch, loop/gate e grupo de corte. | [ProductionPanels.kt](../androidApp/src/main/kotlin/dev/breda/beats/ProductionPanels.kt) |
 | Sample | Editar waveform, recortar e dividir amostra. | [StudioPanels.kt](../androidApp/src/main/kotlin/dev/breda/beats/StudioPanels.kt) |
 | Pistas e mixer | Editar notas, arranjar sequências e mixar canais. | [ProductionPanels.kt](../androidApp/src/main/kotlin/dev/breda/beats/ProductionPanels.kt) |
@@ -20,8 +21,10 @@ Use dados fictícios, em ambiente de avaliação.
 2. Grave notas nos pads depois da contagem; pare e reproduza.
 3. Segure o kick e ajuste 70%; mantenha a caixa em 100%.
 4. Duplique uma sequência, altere as notas e monte o arranjo.
-5. Abra FX master e experimente Vinyl Color, Lo-Fi, Room Reverb, Beat Repeat e Filter Sweep enquanto o áudio toca.
+5. Escolha Vinyl Color, Lo-Fi, Room Reverb, Beat Repeat ou Filter Sweep no seletor FX fixo; use CTRL 1 para o parâmetro principal, CTRL 2 para drive e CTRL 3 para delay enquanto toca.
 6. Ajuste o mixer, exporte WAV/stems e salve também um ZIP editável.
+
+VOL controla o master. Em STUDIO, CTRL 1 ajusta o filtro; nos modos de performance, controla a intensidade do efeito ativo. CTRL 2 ajusta drive e CTRL 3 delay. PLAY, REC PADS e STOP permanecem visíveis ao navegar ou rolar. O arraste vertical altera os knobs; os parâmetros continuam disponíveis no Mixer.
 
 As escolhas de FX master ficam no backup do projeto. Backups anteriores continuam abrindo com a cadeia de estúdio padrão. Stems permanecem secos para mixagem externa.
 
