@@ -5,7 +5,7 @@
 Projeto de **Bruno Breda · breda_dev**. Oferecer um fluxo compacto de produção de batidas com marca original e controle explícito de gravação e microfone.
 
 **Plataforma:** Android nativo · Kotlin · Compose · AudioTrack/AudioRecord  
-**Estado:** versão 0.6 em evolução; a prévia mais recente fica nas execuções do GitHub Actions.
+**Estado:** versão 0.6.1 em evolução; a prévia mais recente fica nas execuções do GitHub Actions.
 
 [Fluxos e demonstração](docs/fluxos.md) · [Engenharia](docs/engenharia.md) · [Builds e evidências](docs/evidencias.md) · [Portfólio completo](https://github.com/brunobredadeveloper/breda-park-wash/blob/main/docs/portfolio-breda-dev.md)
 
