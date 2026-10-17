@@ -40,7 +40,7 @@ JDK 17, SDK 37 e Android 8+. Use fones para avaliar microfone e metrônomo.
 ./gradlew :core:test :androidApp:testDebugUnitTest :androidApp:lintDebug :androidApp:assemblePreview :androidApp:assembleDebugAndroidTest
 ```
 
-[Abrir a execução verificada no GitHub Actions](https://github.com/brunobredadeveloper/breda-beats/actions/runs/38422254625). A conclusão dessa execução é **success**; consulte os artefatos e a revisão de código em [evidências](docs/evidencias.md).
+[Abrir a execução validada no GitHub Actions](https://github.com/brunobredadeveloper/breda-beats/actions/runs/39075907079). O workflow passou em testes, lint, builds Android e verificação em emulador; consulte o APK e as evidências em [evidências](docs/evidencias.md).
 
 ## Limites do produto
 
