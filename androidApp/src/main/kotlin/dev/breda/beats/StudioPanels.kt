@@ -12,11 +12,70 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import dev.breda.beats.core.Channel
 import dev.breda.beats.presentation.*
 
 private val Gold=Color(0xFFF6B44E)
 private val Violet=Color(0xFFB197FC)
+
+@Composable fun SampleEditorControls(s:StudioState,vm:StudioViewModel,onChop:()->Unit){
+    var range by remember(s.pad,s.samples){mutableStateOf(s.start..s.end)}
+    val sample=s.samples[s.pad]
+    val selectedMs=(((range.endInclusive-range.start)*sample.pcm.size.toDouble()/sample.rate)*1000).roundToInt()
+    val inMs=((range.start*sample.pcm.size.toDouble()/sample.rate)*1000).roundToInt()
+    val outMs=((range.endInclusive*sample.pcm.size.toDouble()/sample.rate)*1000).roundToInt()
+    val enabled=!s.busy && !s.recording && !s.recordPads && s.countdown==0
+    val cardColors=CardDefaults.cardColors(containerColor=Color(0xFF191C23))
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(10.dp)){
+        Card(colors=cardColors,border=BorderStroke(1.dp,Color(0xFF373B46))){
+            Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
+                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                    Column(Modifier.weight(1f)){
+                        Text("RECORTE",color=Gold,fontSize=12.sp,fontWeight=FontWeight.Bold)
+                        Text("IN / OUT · ${selectedMs} ms",color=Color.LightGray,fontSize=11.sp)
+                    }
+                    Text("PAD ${s.pad+1}",color=Violet,fontSize=11.sp,fontWeight=FontWeight.Bold)
+                }
+                RangeSlider(value=range,onValueChange={range=it;vm.trim(it.start,it.endInclusive)},valueRange=0f..1f,enabled=enabled)
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
+                    Text("IN  ${range.start.times(100).toInt()}%  ·  ${inMs} ms",color=Violet,fontSize=10.sp)
+                    Text("OUT  ${range.endInclusive.times(100).toInt()}%  ·  ${outMs} ms",color=Violet,fontSize=10.sp)
+                }
+            }
+        }
+        Card(colors=cardColors,border=BorderStroke(1.dp,Color(0xFF373B46))){
+            Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){
+                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                    Column(Modifier.weight(1f)){
+                        Text("CARÁTER DO SAMPLE",color=Gold,fontSize=12.sp,fontWeight=FontWeight.Bold)
+                        Text("Reprodução, nível e saturação",color=Color.LightGray,fontSize=10.sp)
+                    }
+                    FilterChip(selected=s.reverse,onClick={vm.reverse()},enabled=enabled,label={Text(if(s.reverse)"REVERSE ON" else "REVERSE",fontSize=9.sp)})
+                }
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                    Text("GAIN",color=Gold,fontSize=11.sp,fontWeight=FontWeight.Bold)
+                    Text("${(s.gain*100).toInt()}%",color=Color.LightGray,fontSize=11.sp)
+                }
+                Slider(value=s.gain,onValueChange=vm::gain,valueRange=0f..2f,enabled=enabled)
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                    Text("DRIVE",color=Gold,fontSize=11.sp,fontWeight=FontWeight.Bold)
+                    Text("${(s.drive*100).toInt()}%",color=Color.LightGray,fontSize=11.sp)
+                }
+                Slider(value=s.drive,onValueChange=vm::drive,valueRange=0f..1f,enabled=enabled)
+            }
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Button(onClick={vm.applyEdit()},enabled=enabled && range.start<range.endInclusive,modifier=Modifier.weight(1.15f).heightIn(min=50.dp),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)){
+                Text("APLICAR · SALVAR",fontSize=10.sp,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
+            }
+            OutlinedButton(onClick=onChop,enabled=enabled && range.start<range.endInclusive,modifier=Modifier.weight(1f).heightIn(min=50.dp),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)){
+                Text("CHOP · 16 PADS",fontSize=10.sp,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
+            }
+        }
+        Text("Aplicar confirma o recorte. CHOP usa o mesmo intervalo e substitui os 16 pads; UNDO desfaz.",fontSize=10.sp,color=Color.Gray)
+    }
+}
 
 @Composable fun MicPanel(s:StudioState,vm:StudioViewModel,record:()->Unit){
     Card(colors=CardDefaults.cardColors(containerColor=if(s.recording)Color(0xFF4D2025) else Color(0xFF20252E))){
