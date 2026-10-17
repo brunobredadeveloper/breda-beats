@@ -52,4 +52,12 @@ class FixedPadsTest {
         compose.onNodeWithText("PLAY").assertIsDisplayed()
         compose.onNodeWithText("STOP").assertIsDisplayed()
     }
+    @Test fun sampleEditorGroupsTrimCharacterAndActions(){
+        compose.waitUntil(15000){compose.onAllNodesWithText("SAMPLE").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("SAMPLE").performClick()
+        compose.onNodeWithText("RECORTE").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CARÁTER DO SAMPLE").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("APLICAR · SALVAR").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CHOP · 16 PADS").assertExists()
+    }
 }
