@@ -30,13 +30,13 @@ private val Violet=Color(0xFFB197FC)
     val cardColors=CardDefaults.cardColors(containerColor=Color(0xFF191C23))
     Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(10.dp)){
         Card(colors=cardColors,border=BorderStroke(1.dp,Color(0xFF373B46))){
-            Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
+            Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
                     Column(Modifier.weight(1f)){
                         Text("RECORTE",color=Gold,fontSize=12.sp,fontWeight=FontWeight.Bold)
-                        Text("IN / OUT · ${selectedMs} ms",color=Color.LightGray,fontSize=11.sp)
+                        Text("PAD ${s.pad+1}  ·  ${selectedMs} ms",color=Color.LightGray,fontSize=11.sp)
                     }
-                    Text("PAD ${s.pad+1}",color=Violet,fontSize=11.sp,fontWeight=FontWeight.Bold)
+                    Text("IN → OUT",color=Violet,fontSize=10.sp,fontWeight=FontWeight.Bold)
                 }
                 RangeSlider(value=range,onValueChange={range=it;vm.trim(it.start,it.endInclusive)},valueRange=0f..1f,enabled=enabled)
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
@@ -46,24 +46,30 @@ private val Violet=Color(0xFFB197FC)
             }
         }
         Card(colors=cardColors,border=BorderStroke(1.dp,Color(0xFF373B46))){
-            Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){
+            Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
                     Column(Modifier.weight(1f)){
                         Text("CARÁTER DO SAMPLE",color=Gold,fontSize=12.sp,fontWeight=FontWeight.Bold)
-                        Text("Reprodução, nível e saturação",color=Color.LightGray,fontSize=10.sp)
+                        Text("Nível e textura",color=Color.LightGray,fontSize=10.sp)
                     }
-                    FilterChip(selected=s.reverse,onClick={vm.reverse()},enabled=enabled,label={Text(if(s.reverse)"REVERSE ON" else "REVERSE",fontSize=9.sp)})
+                    FilterChip(selected=s.reverse,onClick={vm.reverse()},enabled=enabled,label={Text(if(s.reverse)"REVERSO ON" else "REVERSO",fontSize=9.sp)})
                 }
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
-                    Text("GAIN",color=Gold,fontSize=11.sp,fontWeight=FontWeight.Bold)
-                    Text("${(s.gain*100).toInt()}%",color=Color.LightGray,fontSize=11.sp)
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                    Column(Modifier.weight(1f).background(Color(0xFF101217),RoundedCornerShape(9.dp)).padding(horizontal=9.dp,vertical=6.dp)){
+                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                            Text("GAIN",color=Gold,fontSize=10.sp,fontWeight=FontWeight.Bold)
+                            Text("${(s.gain*100).toInt()}%",color=Color.LightGray,fontSize=10.sp)
+                        }
+                        Slider(value=s.gain,onValueChange=vm::gain,valueRange=0f..2f,enabled=enabled)
+                    }
+                    Column(Modifier.weight(1f).background(Color(0xFF101217),RoundedCornerShape(9.dp)).padding(horizontal=9.dp,vertical=6.dp)){
+                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+                            Text("DRIVE",color=Gold,fontSize=10.sp,fontWeight=FontWeight.Bold)
+                            Text("${(s.drive*100).toInt()}%",color=Color.LightGray,fontSize=10.sp)
+                        }
+                        Slider(value=s.drive,onValueChange=vm::drive,valueRange=0f..1f,enabled=enabled)
+                    }
                 }
-                Slider(value=s.gain,onValueChange=vm::gain,valueRange=0f..2f,enabled=enabled)
-                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
-                    Text("DRIVE",color=Gold,fontSize=11.sp,fontWeight=FontWeight.Bold)
-                    Text("${(s.drive*100).toInt()}%",color=Color.LightGray,fontSize=11.sp)
-                }
-                Slider(value=s.drive,onValueChange=vm::drive,valueRange=0f..1f,enabled=enabled)
             }
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -74,7 +80,7 @@ private val Violet=Color(0xFFB197FC)
                 Text("CHOP · 16 PADS",fontSize=10.sp,fontWeight=FontWeight.Bold,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
         }
-        Text("Aplicar confirma o recorte. CHOP usa o mesmo intervalo e substitui os 16 pads; UNDO desfaz.",fontSize=10.sp,color=Color.Gray)
+        Text("Aplique para confirmar. CHOP divide o trecho IN → OUT nos 16 pads; UNDO desfaz.",fontSize=10.sp,color=Color.Gray)
     }
 }
 
