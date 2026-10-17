@@ -14,7 +14,7 @@ Projeto de **Bruno Breda · breda_dev**. Oferecer um fluxo compacto de produçã
 - Pads 4×4 fixos em retrato/paisagem; toque longo para volume, pan, pitch e modos.
 - Importação WAV PCM16, gravação armada, trim, reverse, normalização e chop igual em 16 partes.
 - Oito sequências, arranjo, swing, quantização, metrônomo e contagem de preparação.
-- Mixer de 16 canais, efeitos master, undo/redo, backup editável e exportação WAV/stems.
+- Mixer de 16 canais, FX master selecionáveis (Vinyl Color, Lo-Fi, Room Reverb, Beat Repeat e Filter Sweep), undo/redo, backup editável e exportação WAV/stems.
 
 ## Telas reais
 
@@ -29,7 +29,8 @@ Capturas do aplicativo executado em emulador Android, recuperadas dos artefatos 
 2. Grave notas nos pads depois da contagem; pare e reproduza.
 3. Segure o kick e ajuste 70%; mantenha a caixa em 100%.
 4. Duplique uma sequência, altere as notas e monte o arranjo.
-5. Ajuste o mixer, exporte WAV/stems e salve também um ZIP editável.
+5. Teste os modos de FX no master, ajuste o mixer e exporte WAV/stems.
+6. Salve também um ZIP editável para reabrir o projeto.
 
 ## Executar e validar
 
