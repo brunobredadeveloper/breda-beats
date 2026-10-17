@@ -38,21 +38,14 @@ private val PadColors=listOf(Color(0xFFF6B44E),Color(0xFFFF819D),Color(0xFF6EF5D
         if(landscape){
             Row(Modifier.fillMaxSize(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
                 Column(Modifier.widthIn(max=220.dp).weight(.37f).fillMaxHeight().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(6.dp)){
-                    Header(s,vm,onKnob)
                     Display(s,compact=true)
-                    Transport(s,vm)
                     Utility(s,vm,{settings=true},{edit(s.pad)})
                 }
                 PadGrid(s,vm,Modifier.weight(.63f).fillMaxHeight(),::edit)
             }
         }else{
             Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(6.dp)){
-                Header(s,vm,onKnob)
-                if(!compact)Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){
-                    listOf("VOLUME","BPM","GAIN","DRIVE").forEachIndexed{i,name->SmallDial(name,listOf(s.project.master,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]){onKnob(i)}}
-                }
                 Display(s,compact)
-                Transport(s,vm)
                 PadGrid(s,vm,Modifier.fillMaxWidth().weight(1f),::edit)
                 Utility(s,vm,{settings=true},{edit(s.pad)})
             }
