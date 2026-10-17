@@ -20,7 +20,10 @@ Use dados fictícios, em ambiente de avaliação.
 2. Grave notas nos pads depois da contagem; pare e reproduza.
 3. Segure o kick e ajuste 70%; mantenha a caixa em 100%.
 4. Duplique uma sequência, altere as notas e monte o arranjo.
-5. Ajuste o mixer, exporte WAV/stems e salve também um ZIP editável.
+5. Abra FX master e experimente Vinyl Color, Lo-Fi, Room Reverb, Beat Repeat e Filter Sweep enquanto o áudio toca.
+6. Ajuste o mixer, exporte WAV/stems e salve também um ZIP editável.
+
+As escolhas de FX master ficam no backup do projeto. Backups anteriores continuam abrindo com a cadeia de estúdio padrão. Stems permanecem secos para mixagem externa.
 
 ## Casos que merecem atenção
 
