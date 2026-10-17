@@ -45,4 +45,11 @@ class FixedPadsTest {
     }
     @Test fun sixteenPadsStayVisiblePortrait(){verify(Configuration.ORIENTATION_PORTRAIT,"ui-portrait.png")}
     @Test fun sixteenPadsStayVisibleLandscape(){verify(Configuration.ORIENTATION_LANDSCAPE,"ui-landscape.png")}
+    @Test fun performanceDeckAndTransportStayVisibleOnMixer(){
+        compose.waitUntil(15000){compose.onAllNodesWithText("MIXER").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("MIXER").performClick()
+        compose.onNodeWithText("CTRL 1").assertIsDisplayed()
+        compose.onNodeWithText("PLAY").assertIsDisplayed()
+        compose.onNodeWithText("STOP").assertIsDisplayed()
+    }
 }
