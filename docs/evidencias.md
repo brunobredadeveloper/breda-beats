@@ -1,23 +1,22 @@
 # Evidências e distribuição — Breda Beats Studio
 
-Consulta realizada em **14/10/2026**. Esta página separa o que existe no código, o que foi executado e o que ainda precisa de validação física.
+Consulta realizada em **17/10/2026**. Esta página separa o que existe no código, o que foi executado e o que ainda precisa de validação física.
 
 ## Execução consultada
 
-- [GitHub Actions #38422254625](https://github.com/brunobredadeveloper/breda-beats/actions/runs/38422254625)
-- Revisão executada: `ec06ee33cd8cebd2fb6864cfdc42b7e75aba7150`.
+- [GitHub Actions #39075907079](https://github.com/brunobredadeveloper/breda-beats/actions/runs/39075907079)
+- Commit validado: `e123200fbc8f5bc1fd38960115af858448dad2b1`.
 - Workflow: **Breda Beats tests and APK**.
 - Conclusão retornada pelo GitHub: **success**.
-
-Alterações documentais posteriores não equivalem a uma nova compilação do aplicativo.
+- O job Android passou em testes Kotlin, testes unitários, lint, builds Debug/Preview e verificação do APK; o job de interface em emulador também passou.
 
 ## Artefatos encontrados
 
-- `breda-beats-android-apk` — ID `11827725081`; disponível na consulta; sujeito à expiração pelo GitHub.
-- `breda-beats-fixed-pads-ui` — ID `11826734893`; disponível na consulta; sujeito à expiração pelo GitHub.
-- `breda-beats-check-reports` — ID `11826259833`; disponível na consulta; sujeito à expiração pelo GitHub.
+- `breda-beats-android-apk` — ID `12117490143`; inclui `preview/androidApp-preview.apk` e builds de avaliação; expira em 15/01/2027.
+- `breda-beats-fixed-pads-ui` — ID `12117271398`; verificação de interface executada em emulador.
+- `breda-beats-check-reports` — ID `12117211351`; relatórios da esteira.
 
-Para baixar: abra a execução, vá a **Artifacts**, baixe o ZIP e extraia o conteúdo. O GitHub pode exigir login. APK é para Android; bundle JavaScript, relatório e ZIP de fontes não são instaladores. Builds iOS de simulador ou sem assinatura não instalam diretamente no iPhone.
+Para baixar o APK: abra a execução, vá a **Artifacts**, baixe `breda-beats-android-apk` e extraia `preview/androidApp-preview.apk`. O GitHub pode exigir login. Builds iOS de simulador ou sem assinatura não instalam diretamente no iPhone.
 
 ## Capturas incorporadas
 
