@@ -105,7 +105,7 @@ class StudioViewModelTest {
         val colors=Colors()
         scenario(colors){vm,_->
             val previous=colors.value;colors.fail=true
-            vm.appearance(StudioAppearance());runCurrent()
+            vm.appearance(StudioAppearance());vm.appearance(StudioAppearance("30343B","FF819D"));runCurrent()
             assertEquals(previous,vm.state.value.appearance);assertEquals(previous,colors.value)
             assertTrue(vm.state.value.message!!.contains("Falha ao salvar as cores"))
         }

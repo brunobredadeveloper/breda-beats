@@ -27,7 +27,7 @@ object AppearanceCodec {
 
 class LocalAppearanceRepository(context:Context):AppearanceRepository {
     private val file=AtomicFile(File(context.filesDir,"appearance.json"))
-    override fun load()=if(file.baseFile.exists())AppearanceCodec.decode(String(file.readFully())) else StudioAppearance()
+    override fun load()=if(file.baseFile.exists() || File(file.baseFile.path+".bak").exists())AppearanceCodec.decode(String(file.readFully())) else StudioAppearance()
     override fun save(value:StudioAppearance) {
         val stream=file.startWrite()
         try { stream.write(AppearanceCodec.encode(value).toByteArray());file.finishWrite(stream) }

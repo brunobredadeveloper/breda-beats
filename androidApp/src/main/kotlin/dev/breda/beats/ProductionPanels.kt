@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,7 +79,7 @@ import dev.breda.beats.presentation.*
     Text("Toque para selecionar. Segure outra sequência para copiar a atual.",fontSize=11.sp,color=colors.muted)
     for(row in 0..1)Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
         for(col in 0..3){val slot=row*4+col;val clip=s.project.sequence(slot);val used=clip.steps.any{it.isNotEmpty()}
-            Card(Modifier.weight(1f).height(60.dp).combinedClickable(onClick={vm.sequence(slot)},onLongClick={if(slot!=s.project.slot)duplicate=slot}),colors=CardDefaults.cardColors(containerColor=if(slot==s.project.slot)colors.raised else colors.raised)){Column(Modifier.padding(8.dp)){Text("S${slot+1}",color=if(used)colors.secondary else colors.muted,fontWeight=FontWeight.Bold);Text("${clip.steps.size/16} compasso(s)",fontSize=8.sp)}}
+            Card(Modifier.weight(1f).height(60.dp).combinedClickable(onClick={vm.sequence(slot)},onLongClick={if(slot!=s.project.slot)duplicate=slot}),colors=CardDefaults.cardColors(containerColor=if(slot==s.project.slot)lerp(colors.panel,colors.secondary,.24f) else colors.raised)){Column(Modifier.padding(8.dp)){Text("S${slot+1}",color=if(used)colors.secondary else colors.muted,fontWeight=FontWeight.Bold);Text("${clip.steps.size/16} compasso(s)",fontSize=8.sp)}}
         }
     }
     Text("MÚSICA: ${s.project.arrangement.joinToString(" → "){"S${it+1}"}}",color=colors.secondary,fontSize=12.sp)

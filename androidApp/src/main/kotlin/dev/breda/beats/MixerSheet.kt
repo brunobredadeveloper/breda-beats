@@ -89,7 +89,6 @@ import kotlin.math.roundToInt
     val channel=s.project.channels[pad]
     val currentChannel by rememberUpdatedState(channel)
     var level by remember(channel.level){mutableFloatStateOf(channel.level)}
-    val currentLevel by rememberUpdatedState(level)
     val select by rememberUpdatedState(onSelect)
     val tint=listOf(colors.accent,Color(0xFFFF819D),Color(0xFF6EF5D0),colors.secondary)[pad/4]
     val enabled=!s.busy && !s.recording && s.countdown==0
@@ -115,7 +114,7 @@ import kotlin.math.roundToInt
         }.pointerInput(pad,enabled) {
             if(enabled)detectDragGestures(
                 onDragStart={position->select();level=(1f-(position.y-8.dp.toPx())/(size.height-16.dp.toPx()).coerceAtLeast(1f)).coerceIn(0f,1f);vm.previewChannel(pad,currentChannel.copy(level=level))},
-                onDragEnd={vm.channel(pad,currentChannel.copy(level=currentLevel))},
+                onDragEnd={vm.channel(pad,currentChannel.copy(level=level))},
                 onDragCancel={level=currentChannel.level;vm.previewChannel(pad,currentChannel)}
             ){change,amount->change.consume();level=(level-amount.y/(size.height-16.dp.toPx()).coerceAtLeast(1f)).coerceIn(0f,1f);vm.previewChannel(pad,currentChannel.copy(level=level))}
         }.pointerInput(pad,enabled) {

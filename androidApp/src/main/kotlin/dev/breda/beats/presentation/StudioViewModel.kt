@@ -45,9 +45,10 @@ class StudioViewModel(
     private var finishingMic=false
     private var countInJob:Job?=null
     private val appearanceWrites=Mutex()
+    private var savedAppearance=StudioAppearance()
     init {
         viewModelScope.launch {
-            try { val value=withContext(io){appearanceRepository?.load()?:StudioAppearance()};update{it.copy(appearance=value)} }
+            try { val value=withContext(io){appearanceRepository?.load()?:StudioAppearance()};savedAppearance=value;update{it.copy(appearance=value)} }
             catch(e:Exception) { message("Não foi possível ler suas cores: ${e.message}") }
         }
         viewModelScope.launch {
@@ -82,12 +83,11 @@ class StudioViewModel(
     fun release(pad:Int){engine?.release(pad)}
     fun page(page:Int){update{it.copy(page=page)}}
     fun appearance(value:StudioAppearance) {
-        val previous=state.value.appearance
         update{it.copy(appearance=value)}
         viewModelScope.launch {
             appearanceWrites.withLock {
-                try { withContext(io){appearanceRepository?.save(value)} }
-                catch(e:Exception) { update{it.copy(appearance=if(it.appearance==value)previous else it.appearance,message="Falha ao salvar as cores: ${e.message}")} }
+                try { withContext(io){appearanceRepository?.save(value)};savedAppearance=value }
+                catch(e:Exception) { update{it.copy(appearance=if(it.appearance==value)savedAppearance else it.appearance,message="Falha ao salvar as cores: ${e.message}")} }
             }
         }
     }

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -228,7 +229,7 @@ private val PadColors=listOf(Color(0xFFF6B44E),Color(0xFFFF819D),Color(0xFF6EF5D
             }
             .padding(7.dp)
     ){
-        Text("${pad+1}",fontSize=if(maxHeight<48.dp)18.sp else 26.sp,fontWeight=FontWeight.Black,color=if(lit)Color.Black else colors.text,modifier=Modifier.align(Alignment.TopStart),maxLines=1)
+        Text("${pad+1}",fontSize=if(maxHeight<48.dp)18.sp else 26.sp,fontWeight=FontWeight.Black,color=if(lit)Color.Black else if(colors.background.luminance()>.4f)colors.text else accent,modifier=Modifier.align(Alignment.TopStart),maxLines=1)
         if(channel.pitch!=0)Text("${if(channel.pitch>0)"+" else ""}${channel.pitch}",fontSize=9.sp,color=colors.secondary,modifier=Modifier.align(Alignment.TopEnd))
         if(maxHeight>=48.dp)Text("$name · ${(channel.level*100).toInt()}%",fontSize=8.sp,color=if(lit)Color.Black else colors.muted,modifier=Modifier.align(Alignment.BottomStart),maxLines=1,overflow=TextOverflow.Ellipsis)
     }
