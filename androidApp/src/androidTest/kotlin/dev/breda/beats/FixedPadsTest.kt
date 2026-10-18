@@ -53,6 +53,8 @@ class FixedPadsTest {
         compose.onNodeWithText("STOP").assertIsDisplayed()
     }
     @Test fun padLightsWhileHeld(){
+        compose.waitUntil(15000){compose.onAllNodesWithText("PADS").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("PADS").performClick()
         compose.waitUntil(15000){compose.onNodeWithTag("record-status").fetchSemanticsNode().config[SemanticsProperties.Text].any{it.text=="READY"}}
         val pad=compose.onNodeWithTag("pad-1")
         pad.performTouchInput{down(center)}
