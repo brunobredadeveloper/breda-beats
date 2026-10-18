@@ -52,6 +52,22 @@ class FixedPadsTest {
         compose.onNodeWithText("PLAY").assertIsDisplayed()
         compose.onNodeWithText("STOP").assertIsDisplayed()
     }
+    @Test fun padLightsWhileHeld(){
+        compose.waitUntil(15000){compose.onNodeWithTag("record-status").fetchSemanticsNode().config[SemanticsProperties.Text].any{it.text=="READY"}}
+        val pad=compose.onNodeWithTag("pad-1")
+        pad.performTouchInput{down(center)}
+        try{
+            compose.waitUntil(2000){
+                pad.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)?.startsWith("Tocado, intensidade")==true
+            }
+            val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+            File(compose.activity.getExternalFilesDir(null),"ui-pad-press.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+            screenshot.recycle()
+        }finally{
+            pad.performTouchInput{up()}
+        }
+    }
+
     @Test fun sampleEditorGroupsTrimCharacterAndActions(){
         compose.waitUntil(15000){compose.onAllNodesWithText("SAMPLE").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("SAMPLE").performClick()
