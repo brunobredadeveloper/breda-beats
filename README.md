@@ -5,7 +5,7 @@
 Projeto de **Bruno Breda · breda_dev**. Oferecer um fluxo compacto de produção de batidas com marca original e controle explícito de gravação e microfone.
 
 **Plataforma:** Android nativo · Kotlin · Compose · AudioTrack/AudioRecord  
-**Estado:** versão 0.6.4 em evolução; a prévia mais recente fica nas execuções do GitHub Actions.
+**Estado:** versão 0.7.0 em evolução; a prévia mais recente fica nas execuções do GitHub Actions.
 
 [Fluxos e demonstração](docs/fluxos.md) · [Engenharia](docs/engenharia.md) · [Builds e evidências](docs/evidencias.md) · [Portfólio completo](https://github.com/brunobredadeveloper/breda-park-wash/blob/main/docs/portfolio-breda-dev.md)
 
@@ -14,7 +14,9 @@ Projeto de **Bruno Breda · breda_dev**. Oferecer um fluxo compacto de produçã
 - Pads 4×4 fixos em retrato/paisagem; toque longo para volume, pan, pitch e modos.
 - Importação WAV PCM16, gravação armada, trim, reverse, normalização e chop igual em 16 partes.
 - Oito sequências, arranjo, swing, quantização, metrônomo e contagem de preparação.
-- Mixer de 16 canais e FX master com Vinyl Sim, DJFX Looper, Tape Echo, Isolator, Scatter, Slicer, Chorus, Compressor, Lo-Fi, Reverb e Filter Sweep. Faixa fixa em todas as telas com volume, CTRL 1–3, seletor de FX e transporte PLAY/REC/STOP; inclui undo/redo, backup editável e exportação WAV/stems.
+- Mixer sobreposto em bottom sheet: 16 canais visíveis em retrato, volume, pan, mute/solo e picos por canal. Veja o [guia do Mixer e das cores](docs/MIXER-APPEARANCE.md).
+- Aparência com seis fundos, oito cores de controles e valores HEX personalizados; preferências persistentes independentes do projeto.
+- FX master com Vinyl Sim, DJFX Looper, Tape Echo, Isolator, Scatter, Slicer, Chorus, Compressor, Lo-Fi, Reverb e Filter Sweep. Faixa fixa em todas as telas com volume, CTRL 1–3, seletor de FX e transporte PLAY/REC/STOP; inclui undo/redo, backup editável e exportação WAV/stems.
 
 ## Telas reais
 
@@ -57,3 +59,4 @@ Produtores de rap e equipes que avaliam DSP, persistência e interfaces de perfo
 - Concluir requisitos de distribuição, suporte e segurança antes de uso comercial.
 
 Código, mídias e dependências mantêm seus respectivos termos. Consulte os créditos e os avisos existentes no repositório.
+

@@ -47,7 +47,7 @@ class FixedPadsTest {
     @Test fun sixteenPadsStayVisibleLandscape(){verify(Configuration.ORIENTATION_LANDSCAPE,"ui-landscape.png")}
     @Test fun performanceDeckAndTransportStayVisibleOnMixer(){
         compose.waitUntil(15000){compose.onAllNodesWithText("MIXER").fetchSemanticsNodes().isNotEmpty()}
-        compose.onNodeWithText("MIXER").performClick()
+        compose.onNodeWithTag("nav-mixer").performClick()
         compose.onNodeWithText("CTRL 1").assertIsDisplayed()
         compose.onNodeWithText("PLAY").assertIsDisplayed()
         compose.onNodeWithText("STOP").assertIsDisplayed()
@@ -96,3 +96,4 @@ class FixedPadsTest {
         assertTrue("Track sequencer should appear before the remaining controls",trackTop<recordingTop)
     }
 }
+

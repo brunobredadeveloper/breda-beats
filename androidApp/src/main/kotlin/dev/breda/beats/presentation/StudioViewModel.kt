@@ -6,10 +6,13 @@ import dev.breda.beats.core.*
 import dev.breda.beats.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 data class StudioState(
+    val appearance:StudioAppearance=StudioAppearance(),
     val project:StudioProject=StudioProject(), val pad:Int=0, val playing:Boolean=false,
     val recording:Boolean=false, val recordPads:Boolean=false, val micEnabled:Boolean=false,
     val pendingTake:Sample?=null, val takePad:Int=0, val busy:Boolean=true,
@@ -27,7 +30,8 @@ class StudioViewModel(
     private val repository:StudioRepository,
     private val createEngine:((()->Unit)->AudioEngine),
     private val io:CoroutineDispatcher=Dispatchers.IO,
-    private val cpu:CoroutineDispatcher=Dispatchers.Default
+    private val cpu:CoroutineDispatcher=Dispatchers.Default,
+    private val appearanceRepository:AppearanceRepository?=null
 ):ViewModel(){
     private val mutable=MutableStateFlow(StudioState())
     val state=mutable.asStateFlow()
@@ -40,7 +44,12 @@ class StudioViewModel(
     private var micGeneration=0L
     private var finishingMic=false
     private var countInJob:Job?=null
+    private val appearanceWrites=Mutex()
     init {
+        viewModelScope.launch {
+            try { val value=withContext(io){appearanceRepository?.load()?:StudioAppearance()};update{it.copy(appearance=value)} }
+            catch(e:Exception) { message("Não foi possível ler suas cores: ${e.message}") }
+        }
         viewModelScope.launch {
             try {
                 val project=withContext(io){repository.load()}
@@ -72,6 +81,16 @@ class StudioViewModel(
     }
     fun release(pad:Int){engine?.release(pad)}
     fun page(page:Int){update{it.copy(page=page)}}
+    fun appearance(value:StudioAppearance) {
+        val previous=state.value.appearance
+        update{it.copy(appearance=value)}
+        viewModelScope.launch {
+            appearanceWrites.withLock {
+                try { withContext(io){appearanceRepository?.save(value)} }
+                catch(e:Exception) { update{it.copy(appearance=if(it.appearance==value)previous else it.appearance,message="Falha ao salvar as cores: ${e.message}")} }
+            }
+        }
+    }
     fun loop(){val s=state.value;channel(s.pad,s.project.channels[s.pad].copy(loop=!s.loop))}
     fun gate(){val s=state.value;channel(s.pad,s.project.channels[s.pad].copy(gate=!s.gate))}
     fun reverse(){update{it.copy(reverse=!it.reverse)}}
@@ -232,3 +251,4 @@ class StudioViewModel(
     }
     override fun onCleared(){microphone.cancel();engine?.close()}
 }
+

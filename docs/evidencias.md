@@ -7,7 +7,7 @@ A validação automatizada e a avaliação física são etapas distintas. Esta p
 - [GitHub Actions — Breda Beats](https://github.com/brunobredadeveloper/breda-beats/actions)
 - Abra a execução mais recente de **Breda Beats tests and APK** concluída com sucesso e baixe o artefato `breda-beats-android-apk`.
 - Extraia `preview/androidApp-preview.apk`. O GitHub pode exigir login; artefatos expiram conforme a política de retenção do repositório.
-- A prévia 0.6.4 usa o pacote `dev.breda.beats.preview10` para coexistir com prévias anteriores. Cada instalação mantém projetos próprios; não desinstale a versão antiga se ainda precisar dos dados dela.
+- A prévia 0.7.0 usa o pacote `dev.breda.beats.preview11` para coexistir com prévias anteriores. Cada instalação mantém projetos próprios; não desinstale a versão antiga se ainda precisar dos dados dela.
 
 A esteira executa testes Kotlin, testes unitários Android, lint, builds Debug/Preview, assinatura/verificação do APK e testes de interface no emulador. Isso não substitui a avaliação auditiva no aparelho real.
 
@@ -19,8 +19,13 @@ A esteira executa testes Kotlin, testes unitários Android, lint, builds Debug/P
 
 As capturas vêm de execução automatizada em emulador. Os dados exibidos são de demonstração e as imagens foram mantidas sem retoques. Elas não demonstram áudio, latência física ou persistência após reinstalação.
 
+## Evidências do Mixer e da aparência
+
+O artefato `breda-beats-fixed-pads-ui` também recebe `ui-mixer-portrait.png`, `ui-mixer-landscape.png`, `ui-appearance.png` e `ui-appearance-light.png`. `MixerAppearanceTest` verifica os 16 faders dentro da tela, transporte operável com a mesa aberta, ajuste independente de canal, retorno à tela anterior, cores HEX inválidas e recriação da Activity. Os testes unitários cobrem persistência das cores e falha de gravação sem alterar o projeto musical. Consulte o resultado da execução associada ao commit para confirmar o status.
+
 ## Avaliação física pendente
 
 Avalie navegação, acessibilidade, interrupções, recursos do aparelho e instalação/distribuição. Pitch altera velocidade/duração; vozes ao vivo são limitadas a 32. O render corta caudas nos limites e usa hard clipping; latência física não foi medida.
 
 [Fluxos e checklist](fluxos.md) · [README](../README.md)
+

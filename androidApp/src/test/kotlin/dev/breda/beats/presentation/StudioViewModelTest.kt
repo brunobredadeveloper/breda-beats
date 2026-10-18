@@ -36,11 +36,11 @@ class StudioViewModelTest {
         override fun metronome(enabled:Boolean,bpm:Int,standalone:Boolean){}
         override fun close(){}
     }
-    private fun scenario(body:TestScope.(StudioViewModel,Repository)->Unit)=runTest {
+    private fun scenario(appearanceRepository:AppearanceRepository?=null,body:TestScope.(StudioViewModel,Repository)->Unit)=runTest {
         val dispatcher=StandardTestDispatcher(testScheduler);Dispatchers.setMain(dispatcher)
         val store=ViewModelStore()
         try{
-            val repository=Repository();val vm=StudioViewModel(repository,{Engine()},dispatcher,dispatcher)
+            val repository=Repository();val vm=StudioViewModel(repository,{Engine()},dispatcher,dispatcher,appearanceRepository)
             store.put("studio",vm);runCurrent();assertFalse(vm.state.value.busy)
             body(vm,repository)
         } finally {store.clear();Dispatchers.resetMain()}
@@ -84,4 +84,32 @@ class StudioViewModelTest {
         advanceTimeBy(1000);vm.enableMic();runCurrent();advanceTimeBy(4000);runCurrent()
         assertFalse(vm.state.value.micEnabled);assertFalse(vm.state.value.recording);assertEquals(0,vm.state.value.countdown);assertNull(vm.state.value.pendingTake);assertNull(vm.state.value.error)
     }
+    private class Colors:AppearanceRepository {
+        var value=StudioAppearance("102B40","6EF5D0")
+        var fail=false
+        override fun load()=value
+        override fun save(value:StudioAppearance){check(!fail){"disk full"};this.value=value}
+    }
+    @Test fun appearanceIsLoadedAndSavedWithoutEditingTheProject() {
+        val colors=Colors()
+        scenario(colors){vm,repository->
+            assertEquals(colors.value,vm.state.value.appearance)
+            val project=repository.project
+            val choice=StudioAppearance("F0EEE7","82E0FF")
+            vm.appearance(choice);runCurrent()
+            assertEquals(choice,colors.load());assertEquals(choice,vm.state.value.appearance)
+            assertSame(project,repository.project);assertFalse(vm.state.value.canUndo)
+        }
+    }
+    @Test fun failedAppearanceSaveKeepsPreviousColorsAndReportsFailure() {
+        val colors=Colors()
+        scenario(colors){vm,_->
+            val previous=colors.value;colors.fail=true
+            vm.appearance(StudioAppearance());runCurrent()
+            assertEquals(previous,vm.state.value.appearance);assertEquals(previous,colors.value)
+            assertTrue(vm.state.value.message!!.contains("Falha ao salvar as cores"))
+        }
+    }
+
 }
+

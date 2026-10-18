@@ -22,7 +22,9 @@ Oito sequências, com 1 a 8 compassos, BPM global de 40 a 200 e swing. Na tela P
 As vozes são interrompidas nas fronteiras dos clipes; o delay continua entre eles. Não existe gravador contínuo multifaixa ou automação de pitch em piano roll.
 
 ## Mixer, efeitos e resampling
-Mixer de 16 canais com nível, pan, mute/solo e picos amostrados. O banco de FX master inclui STUDIO (passa-baixas, saturação e delay), Vinyl Sim, Lo-Fi, Room Reverb, Beat Repeat, DJFX Looper, Tape Echo, Isolator, Scatter, Slicer, Chorus e Compressor. No DJFX Looper, CTRL 1 escolhe o tamanho sincronizado do trecho, CTRL 2 ajusta velocidade/direção de -1× a +1× e CTRL 3 controla o mix. Os efeitos são implementações próprias inspiradas no fluxo de performance; não são réplicas nem cobrem todo o catálogo da SP-404MKII. Alterações ao vivo guardam os valores finais ao parar; não viram pistas de automação.
+Mixer de 16 canais em bottom sheet sobre a tela atual, com duas fileiras de oito canais em retrato e uma fileira em paisagem larga. Todos os faders ficam visíveis; selecione um canal para panorama, mute/solo, CUE e renomeação. O transporte e os knobs permanecem acessíveis acima. Feche no ×, arrastando para baixo, tocando MIXER novamente ou usando Voltar. Os FX detalhados e o resampling ficam no botão FX da mesa e no menu de efeitos do cabeçalho.
+
+Em PROJETO → CORES DO ESTÚDIO, escolha fundos e controles independentemente ou informe HEX de seis dígitos. As cores são salvas no aparelho, fora do backup musical e do histórico UNDO. RESTAURAR volta ao carvão/âmbar. Textos e painéis acompanham o contraste do fundo. O banco de FX master inclui STUDIO (passa-baixas, saturação e delay), Vinyl Sim, Lo-Fi, Room Reverb, Beat Repeat, DJFX Looper, Tape Echo, Isolator, Scatter, Slicer, Chorus e Compressor. No DJFX Looper, CTRL 1 escolhe o tamanho sincronizado do trecho, CTRL 2 ajusta velocidade/direção de -1× a +1× e CTRL 3 controla o mix. Os efeitos são implementações próprias inspiradas no fluxo de performance; não são réplicas nem cobrem todo o catálogo da SP-404MKII. Alterações ao vivo guardam os valores finais ao parar; não viram pistas de automação.
 
 Resampling interno renderiza a sequência com mix/FX, converte estéreo em mono e substitui o pad selecionado após confirmação. Não usa microfone. Os efeitos master podem processar novamente a amostra resultante quando ela for reproduzida.
 
@@ -34,6 +36,7 @@ Schema 4 migra versões locais legíveis depois de uma gravação bem-sucedida. 
 Undo/redo guarda até 20 ações, sujeito a orçamento de memória PCM compartilhada. Histórico de desfazer e tomadas não confirmadas não sobrevivem ao reinício. Salvamento do projeto é atômico.
 
 ## Instalação e limites
-A avaliação 0.4 usa `dev.breda.beats.preview04`, ao lado da versão `.debug`; dados não são migrados automaticamente entre IDs. A assinatura CI é temporária. Atualizações comerciais exigem credenciais privadas estáveis, não versionadas.
+A avaliação 0.7.0 usa `dev.breda.beats.preview11`, ao lado da versão `.debug`; dados não são migrados automaticamente entre IDs. A assinatura CI é temporária. Atualizações comerciais exigem credenciais privadas estáveis, não versionadas.
 
 Inspiração em samplers compactos, com marca própria. Sem promessa de paridade com Koala, SP-404 ou DAW desktop. Não há time-stretch independente, separação de stems por IA, MIDI, plugins, gravação contínua multifaixa ou automação. Sem afiliação à Roland/Akai; nenhum som proprietário dessas marcas é incluído. Latência, áudio e roteamento precisam de avaliação física.
+

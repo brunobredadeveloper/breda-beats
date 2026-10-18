@@ -2,12 +2,12 @@ plugins { id("com.android.application"); id("org.jetbrains.kotlin.plugin.compose
 android {
     namespace = "dev.breda.beats"
     compileSdk = 37
-    defaultConfig { applicationId = "dev.breda.beats"; minSdk = 26; targetSdk = 37; versionCode = 10; versionName = "0.6.4"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "dev.breda.beats"; minSdk = 26; targetSdk = 37; versionCode = 11; versionName = "0.7.0"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
     buildFeatures { compose = true; resValues = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     buildTypes {
         debug { signingConfig = signingConfigs.getByName("debug"); applicationIdSuffix = ".debug"; versionNameSuffix = "-debug"; resValue("string", "app_name", "Breda Beats · avaliação") }
-        create("preview") { initWith(getByName("debug")); applicationIdSuffix = ".preview10"; versionNameSuffix = "-preview"; resValue("string", "app_name", "Breda Beats Studio 0.6.4"); matchingFallbacks += listOf("debug") }
+        create("preview") { initWith(getByName("debug")); applicationIdSuffix = ".preview11"; versionNameSuffix = "-preview"; resValue("string", "app_name", "Breda Beats Studio 0.7.0"); matchingFallbacks += listOf("debug") }
         release { isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }
     }
 }
@@ -30,3 +30,4 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+
