@@ -76,6 +76,7 @@ jobs:
             adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-portrait.png .
             adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-landscape.png .
             adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-pad-editor.png .
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-sample-editor.png .
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -85,3 +86,4 @@ jobs:
             ui-portrait.png
             ui-landscape.png
             ui-pad-editor.png
+            ui-sample-editor.png
