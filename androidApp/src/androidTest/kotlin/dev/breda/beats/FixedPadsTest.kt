@@ -58,7 +58,9 @@ class FixedPadsTest {
         pad.performTouchInput{down(center)}
         try{
             compose.waitUntil(2000){
-                pad.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)?.startsWith("Tocado, intensidade")==true
+                val config=pad.fetchSemanticsNode().config
+                config.contains(SemanticsProperties.StateDescription) &&
+                    config[SemanticsProperties.StateDescription].startsWith("Tocado, intensidade")
             }
             val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
             File(compose.activity.getExternalFilesDir(null),"ui-pad-press.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
