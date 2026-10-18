@@ -42,6 +42,7 @@ import dev.breda.beats.data.*
 import dev.breda.beats.presentation.*
 import kotlinx.coroutines.*
 import kotlin.math.abs
+import kotlin.math.roundToInt
 private val Amber=Color(0xFFF6B44E);private val Purple=Color(0xFFB197FC);private val Panel=Color(0xFF22252C)
 class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Amber,secondary=Purple,background=Color(0xFF101115),surface=Panel)){val vm:StudioViewModel=viewModel(factory=viewModelFactory{initializer{StudioViewModel(LocalStudioRepository(applicationContext),{callback->PcmAudioEngine(applicationContext,callback)})}});Studio(vm,this)}}}}
 @OptIn(ExperimentalMaterial3Api::class)

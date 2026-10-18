@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import dev.breda.beats.core.*
 import dev.breda.beats.presentation.*
 
@@ -113,11 +114,11 @@ private val Purple=Color(0xFFB197FC)
     }
     if(mode==FxMode.DJFX_LOOPER){
         val division=listOf(1,2,4,8,16,32)[(amount*5).roundToInt().coerceIn(0,5)]
-        Text("CTRL 1 · LOOP ${if(division==1)"1 tempo" else "1/$division do tempo"}",fontSize=12.sp,color=Gold)
+        Text("CTRL 1 · LOOP ${if(division==1)"1 tempo" else "1/$division do tempo"}",fontSize=12.sp,color=Mint)
         Slider(amount,{amount=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
-        Text("CTRL 2 · VELOCIDADE / DIREÇÃO  ${"%.1f".format(drive*2f-1f)}×",fontSize=12.sp,color=Gold)
+        Text("CTRL 2 · VELOCIDADE / DIREÇÃO  ${"%.1f".format(drive*2f-1f)}×",fontSize=12.sp,color=Mint)
         Slider(drive,{drive=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
-        Text("CTRL 3 · MIX DO LOOP  ${(delay*100).toInt()}%",fontSize=12.sp,color=Gold)
+        Text("CTRL 3 · MIX DO LOOP  ${(delay*100).toInt()}%",fontSize=12.sp,color=Mint)
         Slider(delay,{delay=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
         Text("Captura um trecho no BPM e repete para a frente, ao contrário ou parado.",fontSize=11.sp,color=Color.Gray)
     }else{
