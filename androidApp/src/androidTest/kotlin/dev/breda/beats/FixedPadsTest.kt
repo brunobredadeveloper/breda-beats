@@ -83,4 +83,16 @@ class FixedPadsTest {
         File(compose.activity.getExternalFilesDir(null),"ui-sample-editor.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
         screenshot.recycle()
     }
+    @Test fun tracksOpenFirstAndOtherControlsAreBelow(){
+        compose.waitUntil(15000){compose.onAllNodesWithTag("nav-pistas").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithTag("nav-pistas").performClick()
+        compose.onNodeWithText("SEQUENCIADOR").assertIsDisplayed()
+        val trackTop=compose.onNodeWithText("SEQUENCIADOR").fetchSemanticsNode().boundsInRoot.top
+        val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.getExternalFilesDir(null),"ui-tracks.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+        screenshot.recycle()
+        compose.onNodeWithText("GRAVAÇÃO MULTIPISTAS").performScrollTo().assertIsDisplayed()
+        val recordingTop=compose.onNodeWithText("GRAVAÇÃO MULTIPISTAS").fetchSemanticsNode().boundsInRoot.top
+        assertTrue("Track sequencer should appear before the remaining controls",trackTop<recordingTop)
+    }
 }

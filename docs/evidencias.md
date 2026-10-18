@@ -7,7 +7,7 @@ A validação automatizada e a avaliação física são etapas distintas. Esta p
 - [GitHub Actions — Breda Beats](https://github.com/brunobredadeveloper/breda-beats/actions)
 - Abra a execução mais recente de **Breda Beats tests and APK** concluída com sucesso e baixe o artefato `breda-beats-android-apk`.
 - Extraia `preview/androidApp-preview.apk`. O GitHub pode exigir login; artefatos expiram conforme a política de retenção do repositório.
-- A prévia 0.6.3 usa o pacote `dev.breda.beats.preview09` para coexistir com prévias anteriores. Cada instalação mantém projetos próprios; não desinstale a versão antiga se ainda precisar dos dados dela.
+- A prévia 0.6.4 usa o pacote `dev.breda.beats.preview10` para coexistir com prévias anteriores. Cada instalação mantém projetos próprios; não desinstale a versão antiga se ainda precisar dos dados dela.
 
 A esteira executa testes Kotlin, testes unitários Android, lint, builds Debug/Preview, assinatura/verificação do APK e testes de interface no emulador. Isso não substitui a avaliação auditiva no aparelho real.
 

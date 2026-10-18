@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
@@ -45,7 +46,7 @@ private val Amber=Color(0xFFF6B44E);private val Purple=Color(0xFFB197FC);private
 class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{MaterialTheme(colorScheme=darkColorScheme(primary=Amber,secondary=Purple,background=Color(0xFF101115),surface=Panel)){val vm:StudioViewModel=viewModel(factory=viewModelFactory{initializer{StudioViewModel(LocalStudioRepository(applicationContext),{callback->PcmAudioEngine(applicationContext,callback)})}});Studio(vm,this)}}}}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun Studio(vm:StudioViewModel,activity:ComponentActivity){
- val s by vm.state.collectAsStateWithLifecycle();val scope=rememberCoroutineScope();var volume by remember{mutableFloatStateOf(.7f)};var confirmChop by remember{mutableStateOf(false)};var splash by remember{mutableStateOf(true)};var knob by remember{mutableIntStateOf(-1)};var knobValue by remember{mutableFloatStateOf(0f)};var bar by rememberSaveable{mutableIntStateOf(0)};var erase by remember{mutableStateOf(false)}
+ val s by vm.state.collectAsStateWithLifecycle();val scope=rememberCoroutineScope();var volume by remember{mutableFloatStateOf(.7f)};var confirmChop by remember{mutableStateOf(false)};var splash by remember{mutableStateOf(true)};var knob by remember{mutableIntStateOf(-1)};var knobValue by remember{mutableFloatStateOf(0f)};var bar by rememberSaveable{mutableIntStateOf(0)};val pageScroll=remember(s.page){ScrollState(0)};var erase by remember{mutableStateOf(false)}
  LaunchedEffect(s.project.master){volume=s.project.master}
  LaunchedEffect(s.pattern.steps.size){bar=bar.coerceAtMost(s.pattern.steps.size/16-1)}
  LaunchedEffect(Unit){delay(1200);splash=false}
@@ -59,9 +60,9 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val songExporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("audio/wav")){uri->if(uri!=null)scope.launch{try{withContext(Dispatchers.IO){activity.contentResolver.openOutputStream(uri)?.use{vm.exportSong(it)}?:error("Destino indisponível")};vm.message("Arranjo exportado em WAV estéreo") }catch(e:Exception){vm.message("Exportação falhou: ${e.message}")}}}
  val snack=remember{SnackbarHostState()};LaunchedEffect(s.message){s.message?.let{snack.showSnackbar(it);vm.dismiss()}}
  if(splash){Box(Modifier.fillMaxSize().background(Color(0xFF101115)),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally){Image(painterResource(R.drawable.ic_brand),contentDescription="breda_dev",modifier=Modifier.size(108.dp));LinearProgressIndicator(Modifier.width(160.dp));Text("BREDA BEATS",color=Amber,fontSize=24.sp);Text("Do sample à sua próxima batida",color=Color.LightGray)}};return}
- Scaffold(snackbarHost={SnackbarHost(snack)},topBar={FixedPerformanceDeck(s,vm)},bottomBar={NavigationBar{listOf("PADS","SAMPLE","PISTAS","MIXER","PROJETO").forEachIndexed{i,n->NavigationBarItem(selected=s.page==i,onClick={vm.page(i)},icon={Text(listOf("▦","∿","▥","≋","BD")[i])},label={Text(n,fontSize=10.sp)})}}}){padding->
+ Scaffold(snackbarHost={SnackbarHost(snack)},topBar={FixedPerformanceDeck(s,vm)},bottomBar={NavigationBar{listOf("PADS","SAMPLE","PISTAS","MIXER","PROJETO").forEachIndexed{i,n->NavigationBarItem(selected=s.page==i,onClick={vm.page(i)},modifier=Modifier.testTag("nav-${n.lowercase()}"),icon={Text(listOf("▦","∿","▥","≋","BD")[i])},label={Text(n,fontSize=10.sp)})}}}){padding->
  if(s.page==0)PerformanceScreen(s,vm,Modifier.padding(padding),onKnob={i->knob=i;knobValue=listOf(volume,(s.pattern.bpm-40)/160f,s.gain/2,s.drive)[i]},onImport={importer.launch(arrayOf("audio/wav","audio/x-wav"))},onMicRecord={if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)vm.record() else permission.launch(Manifest.permission.RECORD_AUDIO)})
- else Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+ else Column(Modifier.fillMaxSize().padding(padding).verticalScroll(pageScroll).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
 
 
 
@@ -75,14 +76,13 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  Text("SAMPLE EDIT",color=Amber,fontWeight=FontWeight.Bold);Text("Pad ${s.pad+1} · ajuste o recorte e o caráter do sample.",color=Color.LightGray,fontSize=12.sp)
  SampleEditorControls(s,vm){confirmChop=true}
  };2->{
- CountInControls(s,vm)
- SequencePanel(s,vm){songExporter.launch("breda-beats-song.wav")}
+ TrackOverview(s,bar.coerceAtMost(s.pattern.steps.size/16-1),vm,onBarChange={bar=it})
  Text("GRAVAÇÃO MULTIPISTAS",color=Amber,fontWeight=FontWeight.Bold)
  Text("16 pistas • ${s.pattern.steps.size/16} compassos • overdub quantizado em 1/16",fontSize=12.sp,color=Purple)
  Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){Control(if(s.recordPads)"END TAKE" else "REC PADS",s.recordPads,Modifier.weight(1f)){vm.recordPads()};Control("ERASE PISTA",false,Modifier.weight(1f)){erase=true}}
  Row(verticalAlignment=Alignment.CenterVertically){OutlinedButton(onClick={vm.bars((s.pattern.steps.size/16-1).coerceAtLeast(1))},enabled=!s.busy && !s.recordPads){Text("−")};Text(" ${s.pattern.steps.size/16} compassos ",Modifier.weight(1f));OutlinedButton(onClick={vm.bars((s.pattern.steps.size/16+1).coerceAtMost(8))},enabled=!s.busy && !s.recordPads){Text("+")}}
- Row(Modifier.horizontalScroll(rememberScrollState())){for(b in 0 until s.pattern.steps.size/16){OutlinedButton(onClick={bar=b},modifier=Modifier.padding(end=4.dp)){Text("${b+1}",color=if(bar==b)Amber else Color.Gray)}}}
- TrackOverview(s,bar.coerceAtMost(s.pattern.steps.size/16-1),vm)
+ CountInControls(s,vm)
+ SequencePanel(s,vm){songExporter.launch("breda-beats-song.wav")}
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Control("− BPM",false,Modifier.weight(1f)){vm.tempo(s.pattern.bpm-1)};Control("+ BPM",false,Modifier.weight(1f)){vm.tempo(s.pattern.bpm+1)};Control(if(s.playing)"STOP" else "PLAY",s.playing,Modifier.weight(1f)){vm.toggle()}}
  Text("PAD ${s.pad+1} • ${s.project.names[s.pad]} • passos em semicolcheias",fontSize=12.sp,color=Purple)
  Row(Modifier.horizontalScroll(rememberScrollState())){for(p in 0..15){OutlinedButton(onClick={vm.select(p)},modifier=Modifier.padding(end=4.dp)){Text("${p+1}")}}}
@@ -118,8 +118,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
     val landscape=config.screenWidthDp>config.screenHeightDp
     var master by remember(s.project.master){mutableFloatStateOf(s.project.master)}
     var ctrl1 by remember(fx.mode,fx.filter,fx.amount){mutableFloatStateOf(if(fx.mode==FxMode.STUDIO)fx.filter else fx.amount)}
-    var ctrl2 by remember(fx.drive){mutableFloatStateOf(fx.drive)}
-    var ctrl3 by remember(fx.delay){mutableFloatStateOf(fx.delay)}
+    var ctrl2 by remember(fx.mode,fx.drive){mutableFloatStateOf(fx.drive)}
+    var ctrl3 by remember(fx.mode,fx.delay){mutableFloatStateOf(fx.delay)}
     var fxMenu by remember{mutableStateOf(false)}
     val enabled=!s.busy && !s.recording && s.countdown==0
     val status=when{
@@ -136,21 +136,33 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
     val ctrl1Name=when(fx.mode){
         FxMode.STUDIO->"FILTER"
         FxMode.FILTER_SWEEP->"SWEEP"
-        FxMode.VINYL_COLOR->"COLOR"
+        FxMode.VINYL_COLOR->"VINYL"
         FxMode.LO_FI->"LO-FI"
         FxMode.ROOM_REVERB->"ROOM"
         FxMode.BEAT_REPEAT->"REPEAT"
+        FxMode.DJFX_LOOPER->"LENGTH"
+        FxMode.TAPE_ECHO->"FEEDBACK"
+        FxMode.ISOLATOR->"MID CUT"
+        FxMode.SCATTER->"GRAIN"
+        FxMode.SLICER->"DEPTH"
+        FxMode.CHORUS->"DEPTH"
+        FxMode.COMPRESSOR->"RATIO"
     }
     val ctrl1Value=when(fx.mode){
         FxMode.STUDIO->if(ctrl1>=.999f)"BYPASS" else "${(40+ctrl1*ctrl1*17960).toInt()} Hz"
         FxMode.FILTER_SWEEP->"${(80+ctrl1*ctrl1*15920).toInt()} Hz"
+        FxMode.DJFX_LOOPER->{val d=listOf(1,2,4,8,16,32)[(ctrl1*5).roundToInt().coerceIn(0,5)];if(d==1)"1 BEAT" else "1/$d"}
         else->"${(ctrl1*100).toInt()}%"
     }
+    val ctrl2Name=if(fx.mode==FxMode.DJFX_LOOPER)"SPEED" else "DRIVE"
+    val ctrl2Value=if(fx.mode==FxMode.DJFX_LOOPER)"${"%.1f".format(ctrl2*2f-1f)}×" else "${(ctrl2*100).toInt()}%"
+    val ctrl3Name=if(fx.mode==FxMode.DJFX_LOOPER || fx.mode==FxMode.TAPE_ECHO)"MIX" else "DELAY"
+
     Surface(color=Color(0xFF17191F),shadowElevation=6.dp){
         Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)).padding(horizontal=10.dp,vertical=4.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
             Row(Modifier.fillMaxWidth().height(42.dp),verticalAlignment=Alignment.CenterVertically){
                 Column(Modifier.weight(1f)){
-                    Text("BREDA BEATS / 0.6",fontSize=12.sp,fontWeight=FontWeight.Black,color=Amber,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    Text("BREDA BEATS / 0.6.4",fontSize=12.sp,fontWeight=FontWeight.Black,color=Amber,maxLines=1,overflow=TextOverflow.Ellipsis)
                     Text("${s.pattern.bpm} BPM · $status",fontSize=8.sp,color=Color.LightGray,maxLines=1)
                 }
                 Box{
@@ -164,7 +176,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
                         FxMode.entries.forEach{choice->
                             DropdownMenuItem(text={Text(choice.label)},onClick={
                                 fxMenu=false
-                                if(choice!=fx.mode)vm.effect(fx.copy(mode=choice))
+                                if(choice!=fx.mode)vm.effect(fx.selectMode(choice))
                             })
                         }
                     }
@@ -181,8 +193,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
                     Row(Modifier.weight(1f),horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically){
                         PerformanceRotary("VOL","MASTER",master,"${(master*100).toInt()}%",enabled,Modifier.weight(1f),onValueChange={master=it;vm.volume(it)},onFinished={vm.master(master)})
                         PerformanceRotary("CTRL 1",ctrl1Name,ctrl1,ctrl1Value,enabled,Modifier.weight(1f),onValueChange={ctrl1=it;vm.previewEffect(settings(it,ctrl2,ctrl3))},onFinished={vm.effect(settings(ctrl1,ctrl2,ctrl3))})
-                        PerformanceRotary("CTRL 2","DRIVE",ctrl2,"${(ctrl2*100).toInt()}%",enabled,Modifier.weight(1f),onValueChange={ctrl2=it;vm.previewEffect(settings(ctrl1,it,ctrl3))},onFinished={vm.effect(settings(ctrl1,ctrl2,ctrl3))})
-                        PerformanceRotary("CTRL 3","DELAY",ctrl3,"${(ctrl3*100).toInt()}%",enabled,Modifier.weight(1f),onValueChange={ctrl3=it;vm.previewEffect(settings(ctrl1,ctrl2,it))},onFinished={vm.effect(settings(ctrl1,ctrl2,ctrl3))})
+                        PerformanceRotary("CTRL 2",ctrl2Name,ctrl2,ctrl2Value,enabled,Modifier.weight(1f),onValueChange={ctrl2=it;vm.previewEffect(settings(ctrl1,it,ctrl3))},onFinished={vm.effect(settings(ctrl1,ctrl2,ctrl3))})
+                        PerformanceRotary("CTRL 3",ctrl3Name,ctrl3,"${(ctrl3*100).toInt()}%",enabled,Modifier.weight(1f),onValueChange={ctrl3=it;vm.previewEffect(settings(ctrl1,ctrl2,it))},onFinished={vm.effect(settings(ctrl1,ctrl2,ctrl3))})
                     }
                     FixedTransport(s,vm,Modifier.widthIn(min=232.dp,max=286.dp))
                 }

@@ -141,17 +141,49 @@ private val Violet=Color(0xFFB197FC)
     Text("Deslize a mesa para acessar todos os canais. M = mute; S = solo. O master e a mixagem também são aplicados ao WAV e às pistas exportadas.",fontSize=12.sp,color=Color.Gray)
 }
 
-@Composable fun TrackOverview(s:StudioState,bar:Int,vm:StudioViewModel){
-    Column(Modifier.fillMaxWidth().background(Color(0xFF17191F),RoundedCornerShape(8.dp)).padding(8.dp)){
-        Text("COMPASSO ${bar+1} · TOQUE NA CÉLULA PARA EDITAR",color=Violet,fontSize=9.sp)
-        for(pad in 0..15){
+private val TrackPalette=listOf(Color(0xFFF6B44E),Color(0xFFFF819D),Color(0xFF6EF5D0),Color(0xFFB197FC))
+
+@Composable fun TrackOverview(s:StudioState,bar:Int,vm:StudioViewModel,onBarChange:(Int)->Unit){
+    Card(modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=Color(0xFF17191F)),border=BorderStroke(1.dp,Color(0xFF30333D))){
+        Column(Modifier.fillMaxWidth().padding(10.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                Text("${pad+1}",modifier=Modifier.width(24.dp).clickable{vm.select(pad)},color=if(s.pad==pad)Gold else Color.Gray,fontSize=10.sp)
-                for(i in 0..15){
-                    val step=bar*16+i;val active=pad in s.pattern.steps[step]
-                    Box(Modifier.weight(1f).height(24.dp).padding(1.dp).background(if(active)Gold else Color(0xFF30333D),RoundedCornerShape(3.dp)).border(if(s.step==step)1.dp else 0.dp,Violet,RoundedCornerShape(3.dp)).clickable(enabled=!s.busy && !s.recordPads && !s.recording && s.countdown==0){vm.select(pad);vm.step(step)})
+                Column(Modifier.weight(1f)){
+                    Text("PISTAS",color=Gold,fontSize=15.sp,fontWeight=FontWeight.Black)
+                    Text("16 canais · toque a faixa para selecionar",color=Color.LightGray,fontSize=9.sp)
+                }
+                Text("SEQUENCIADOR",color=Violet,fontSize=9.sp,fontWeight=FontWeight.Bold)
+            }
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+                Text("COMPASSO",color=Color.Gray,fontSize=9.sp,fontWeight=FontWeight.Bold,modifier=Modifier.padding(end=5.dp))
+                Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)){
+                    for(index in 0 until s.pattern.steps.size/16){
+                        FilterChip(selected=bar==index,onClick={onBarChange(index)},label={Text("${index+1}",fontSize=9.sp)},modifier=Modifier.height(34.dp))
+                    }
                 }
             }
+            for(pad in 0..15){
+                val tint=TrackPalette[pad%TrackPalette.size]
+                val selected=s.pad==pad
+                Row(Modifier.fillMaxWidth().height(29.dp).background(if(selected)Color(0xFF22252C) else Color.Transparent,RoundedCornerShape(5.dp)).padding(horizontal=2.dp),verticalAlignment=Alignment.CenterVertically){
+                    Text(
+                        "${(pad+1).toString().padStart(2,'0')} ${s.project.names[pad]}",
+                        modifier=Modifier.width(69.dp).clickable{vm.select(pad)},
+                        color=if(selected)tint else Color.LightGray,fontSize=8.sp,fontWeight=if(selected)FontWeight.Bold else FontWeight.Normal,
+                        maxLines=1,overflow=TextOverflow.Ellipsis
+                    )
+                    for(i in 0..15){
+                        val step=bar*16+i
+                        val active=pad in s.pattern.steps[step]
+                        Box(
+                            Modifier.weight(1f).height(23.dp).padding(horizontal=1.dp,vertical=1.dp)
+                                .background(if(active)tint else Color(0xFF30333D),RoundedCornerShape(3.dp))
+                                .border(if(s.step==step)1.dp else 0.dp,Violet,RoundedCornerShape(3.dp))
+                                .clickable(enabled=!s.busy && !s.recordPads && !s.recording && s.countdown==0){vm.select(pad);vm.step(step)}
+                        )
+                    }
+                }
+            }
+            Text("Toque uma célula para ativar/desativar o passo; a borda violeta acompanha a execução.",fontSize=9.sp,color=Color.Gray)
         }
     }
 }

@@ -17,12 +17,12 @@ Microfone começa desligado, exige armamento explícito, permissão e REC. A tom
 REC usa preparação padrão de três segundos; também há um compasso no BPM atual ou início imediato. O clique interno não entra nas exportações.
 
 ## Sequências e arranjo
-Oito sequências, com 1 a 8 compassos, BPM global de 40 a 200 e swing. Selecione uma sequência com transporte parado; mantenha outro slot pressionado para duplicar a sequência ativa, após confirmação. Construa a música com até 16 partes e 64 compassos no total. A reprodução repete a ordem; a exportação do arranjo renderiza uma passagem.
+Oito sequências, com 1 a 8 compassos, BPM global de 40 a 200 e swing. Na tela PISTAS, a matriz por canal abre logo no topo; o restante dos controles fica abaixo na rolagem. Selecione uma sequência com transporte parado; mantenha outro slot pressionado para duplicar a sequência ativa, após confirmação. Construa a música com até 16 partes e 64 compassos no total. A reprodução repete a ordem; a exportação do arranjo renderiza uma passagem.
 
 As vozes são interrompidas nas fronteiras dos clipes; o delay continua entre eles. Não existe gravador contínuo multifaixa ou automação de pitch em piano roll.
 
 ## Mixer, efeitos e resampling
-Mixer de 16 canais com nível, pan, mute/solo e picos amostrados. O master oferece passa-baixas, saturação e delay de colcheia sincronizado ao tempo. Alterações ao vivo guardam os valores finais ao parar; não viram pistas de automação.
+Mixer de 16 canais com nível, pan, mute/solo e picos amostrados. O banco de FX master inclui STUDIO (passa-baixas, saturação e delay), Vinyl Sim, Lo-Fi, Room Reverb, Beat Repeat, DJFX Looper, Tape Echo, Isolator, Scatter, Slicer, Chorus e Compressor. No DJFX Looper, CTRL 1 escolhe o tamanho sincronizado do trecho, CTRL 2 ajusta velocidade/direção de -1× a +1× e CTRL 3 controla o mix. Os efeitos são implementações próprias inspiradas no fluxo de performance; não são réplicas nem cobrem todo o catálogo da SP-404MKII. Alterações ao vivo guardam os valores finais ao parar; não viram pistas de automação.
 
 Resampling interno renderiza a sequência com mix/FX, converte estéreo em mono e substitui o pad selecionado após confirmação. Não usa microfone. Os efeitos master podem processar novamente a amostra resultante quando ela for reproduzida.
 

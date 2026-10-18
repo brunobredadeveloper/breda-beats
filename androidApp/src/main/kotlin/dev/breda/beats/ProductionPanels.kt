@@ -104,21 +104,36 @@ private val Purple=Color(0xFFB197FC)
     Text("FX DE PERFORMANCE",fontSize=12.sp,color=Purple)
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
         FxMode.entries.forEach{choice->
-            FilterChip(selected=mode==choice,onClick={mode=choice;vm.effect(settings())},enabled=enabled,label={Text(choice.label,fontSize=10.sp)})
+            FilterChip(selected=mode==choice,onClick={
+                val next=settings().selectMode(choice)
+                mode=choice;drive=next.drive;delay=next.delay;amount=next.amount
+                vm.effect(next)
+            },enabled=enabled,label={Text(choice.label,fontSize=10.sp)})
         }
     }
-    if(mode!=FxMode.STUDIO){
-        val valueLabel=if(mode==FxMode.FILTER_SWEEP)"${(80+amount*amount*15920).toInt()} Hz" else "${(amount*100).toInt()}%"
-        Text("${mode.label} · $valueLabel",fontSize=12.sp)
+    if(mode==FxMode.DJFX_LOOPER){
+        val division=listOf(1,2,4,8,16,32)[(amount*5).roundToInt().coerceIn(0,5)]
+        Text("CTRL 1 · LOOP ${if(division==1)"1 tempo" else "1/$division do tempo"}",fontSize=12.sp,color=Gold)
         Slider(amount,{amount=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
-        Text(mode.description,fontSize=11.sp,color=Color.Gray)
+        Text("CTRL 2 · VELOCIDADE / DIREÇÃO  ${"%.1f".format(drive*2f-1f)}×",fontSize=12.sp,color=Gold)
+        Slider(drive,{drive=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
+        Text("CTRL 3 · MIX DO LOOP  ${(delay*100).toInt()}%",fontSize=12.sp,color=Gold)
+        Slider(delay,{delay=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
+        Text("Captura um trecho no BPM e repete para a frente, ao contrário ou parado.",fontSize=11.sp,color=Color.Gray)
+    }else{
+        if(mode!=FxMode.STUDIO){
+            val valueLabel=if(mode==FxMode.FILTER_SWEEP)"${(80+amount*amount*15920).toInt()} Hz" else "${(amount*100).toInt()}%"
+            Text("${mode.label} · $valueLabel",fontSize=12.sp)
+            Slider(amount,{amount=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
+            Text(mode.description,fontSize=11.sp,color=Color.Gray)
+        }
+        Text("LOW-PASS ${if(filter>=.999f)"BYPASS" else "${(40+filter*filter*17960).toInt()} Hz"}",fontSize=12.sp)
+        Slider(filter,{filter=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
+        Text("SATURATION ${(drive*100).toInt()}%",fontSize=12.sp)
+        Slider(drive,{drive=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
+        Text("${if(mode==FxMode.TAPE_ECHO)"TAPE ECHO · FEEDBACK" else "DELAY 1/8"} · ${(delay*100).toInt()}%",fontSize=12.sp)
+        Slider(delay,{delay=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
     }
-    Text("LOW-PASS ${if(filter>=.999f)"BYPASS" else "${(40+filter*filter*17960).toInt()} Hz"}",fontSize=12.sp)
-    Slider(filter,{filter=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
-    Text("SATURATION ${(drive*100).toInt()}%",fontSize=12.sp)
-    Slider(drive,{drive=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
-    Text("DELAY 1/8 · ${(delay*100).toInt()}%",fontSize=12.sp)
-    Slider(delay,{delay=it;vm.previewEffect(settings())},onValueChangeFinished={vm.effect(settings())},enabled=enabled)
     OutlinedButton(onClick={filter=1f;drive=0f;delay=0f;mode=FxMode.STUDIO;amount=.55f;vm.effect(FxSettings())},enabled=enabled){Text("RESET FX")}
     Text("Os efeitos atuam na mix estéreo e na música. Stems são exportados sem o FX do master para mixagem no computador. Movimentos não são gravados como automação.",fontSize=11.sp,color=Color.Gray)
     Button(onClick={confirmResample=true},enabled=enabled && !s.playing){Text("RESAMPLE S${s.project.slot+1} → PAD ${s.pad+1}")}
