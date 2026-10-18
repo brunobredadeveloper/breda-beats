@@ -59,5 +59,8 @@ class FixedPadsTest {
         compose.onNodeWithText("CARÁTER DO SAMPLE").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("APLICAR · SALVAR").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("CHOP · 16 PADS").assertExists()
+        val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.getExternalFilesDir(null),"ui-sample-editor.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+        screenshot.recycle()
     }
 }
