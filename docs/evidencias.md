@@ -1,34 +1,31 @@
 # Evidências e distribuição — Breda Beats Studio
 
-Consulta realizada em **14/10/2026**. Esta página separa o que existe no código, o que foi executado e o que ainda precisa de validação física.
+A validação automatizada e a avaliação física são etapas distintas. Esta página aponta para a execução mais recente do workflow e explica como obter a prévia Android.
 
-## Execução consultada
+## Execuções e APK
 
-- [GitHub Actions #38422254625](https://github.com/brunobredadeveloper/breda-beats/actions/runs/38422254625)
-- Revisão executada: `ec06ee33cd8cebd2fb6864cfdc42b7e75aba7150`.
-- Workflow: **Breda Beats tests and APK**.
-- Conclusão retornada pelo GitHub: **success**.
+- [GitHub Actions — Breda Beats](https://github.com/brunobredadeveloper/breda-beats/actions)
+- Abra a execução mais recente de **Breda Beats tests and APK** concluída com sucesso e baixe o artefato `breda-beats-android-apk`.
+- Extraia `preview/androidApp-preview.apk`. O GitHub pode exigir login; artefatos expiram conforme a política de retenção do repositório.
+- A prévia 0.7.0 usa o pacote `dev.breda.beats.preview11` para coexistir com prévias anteriores. Cada instalação mantém projetos próprios; não desinstale a versão antiga se ainda precisar dos dados dela.
 
-Alterações documentais posteriores não equivalem a uma nova compilação do aplicativo.
-
-## Artefatos encontrados
-
-- `breda-beats-android-apk` — ID `11827725081`; disponível na consulta; sujeito à expiração pelo GitHub.
-- `breda-beats-fixed-pads-ui` — ID `11826734893`; disponível na consulta; sujeito à expiração pelo GitHub.
-- `breda-beats-check-reports` — ID `11826259833`; disponível na consulta; sujeito à expiração pelo GitHub.
-
-Para baixar: abra a execução, vá a **Artifacts**, baixe o ZIP e extraia o conteúdo. O GitHub pode exigir login. APK é para Android; bundle JavaScript, relatório e ZIP de fontes não são instaladores. Builds iOS de simulador ou sem assinatura não instalam diretamente no iPhone.
+A esteira executa testes Kotlin, testes unitários Android, lint, builds Debug/Preview, assinatura/verificação do APK e testes de interface no emulador. Isso não substitui a avaliação auditiva no aparelho real.
 
 ## Capturas incorporadas
 
-- [ui-portrait.png](imagens/ui-portrait.png) — artefato de testes de interface do aplicativo.
-- [ui-pad-editor.png](imagens/ui-pad-editor.png) — artefato de testes de interface do aplicativo.
-- [ui-landscape.png](imagens/ui-landscape.png) — artefato de testes de interface do aplicativo.
+- [ui-portrait.png](imagens/ui-portrait.png) — pads fixos em retrato.
+- [ui-pad-editor.png](imagens/ui-pad-editor.png) — editor do pad por toque longo.
+- [ui-landscape.png](imagens/ui-landscape.png) — pads fixos em paisagem.
 
-Origem: https://github.com/brunobredadeveloper/breda-beats/actions/runs/38422254625. Os dados exibidos são de demonstração. As capturas foram mantidas sem retoques.
+As capturas vêm de execução automatizada em emulador. Os dados exibidos são de demonstração e as imagens foram mantidas sem retoques. Elas não demonstram áudio, latência física ou persistência após reinstalação.
+
+## Evidências do Mixer e da aparência
+
+O artefato `breda-beats-fixed-pads-ui` também recebe `ui-mixer-portrait.png`, `ui-mixer-landscape.png`, `ui-appearance.png` e `ui-appearance-light.png`. `MixerAppearanceTest` verifica os 16 faders dentro da tela, transporte operável com a mesa aberta, ajuste independente de canal, retorno à tela anterior, cores HEX inválidas e recriação da Activity. Os testes unitários cobrem persistência das cores e falha de gravação sem alterar o projeto musical. Consulte o resultado da execução associada ao commit para confirmar o status.
 
 ## Avaliação física pendente
 
-Testes automatizados e compilação não substituem avaliação de acessibilidade, interrupções, recursos do aparelho e instalação/distribuição pelo titular. Não é paridade completa com Koala, MPC ou DAW desktop. Sem time-stretch independente, MIDI, plugins, automação ou gravação contínua multifaixa. Pitch muda velocidade/duração; vozes ao vivo limitadas a 32. Render corta caudas nos limites e usa hard clipping; latência física não medida.
+Avalie navegação, acessibilidade, interrupções, recursos do aparelho e instalação/distribuição. Pitch altera velocidade/duração; vozes ao vivo são limitadas a 32. O render corta caudas nos limites e usa hard clipping; latência física não foi medida.
 
 [Fluxos e checklist](fluxos.md) · [README](../README.md)
+

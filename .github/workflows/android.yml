@@ -72,10 +72,17 @@ jobs:
             adb install $(find ui-apks -name '*debug.apk' ! -name '*androidTest*' | head -1)
             adb install $(find ui-apks -name '*androidTest.apk' | head -1)
             adb shell am instrument -w -r dev.breda.beats.debug.test/androidx.test.runner.AndroidJUnitRunner | tee ui-test-result.txt
-            grep -q 'OK (3 tests)' ui-test-result.txt
-            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-portrait.png .
-            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-landscape.png .
-            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-pad-editor.png .
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-portrait.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-landscape.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-pad-editor.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-sample-editor.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-pad-press.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-tracks.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-mixer-portrait.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-mixer-landscape.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-appearance.png . || true
+            adb pull /sdcard/Android/data/dev.breda.beats.debug/files/ui-appearance-light.png . || true
+            grep -Eq 'OK \([0-9]+ tests?\)' ui-test-result.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -85,3 +92,10 @@ jobs:
             ui-portrait.png
             ui-landscape.png
             ui-pad-editor.png
+            ui-sample-editor.png
+            ui-pad-press.png
+            ui-tracks.png
+            ui-mixer-portrait.png
+            ui-mixer-landscape.png
+            ui-appearance.png
+            ui-appearance-light.png

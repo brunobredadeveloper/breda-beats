@@ -45,4 +45,55 @@ class FixedPadsTest {
     }
     @Test fun sixteenPadsStayVisiblePortrait(){verify(Configuration.ORIENTATION_PORTRAIT,"ui-portrait.png")}
     @Test fun sixteenPadsStayVisibleLandscape(){verify(Configuration.ORIENTATION_LANDSCAPE,"ui-landscape.png")}
+    @Test fun performanceDeckAndTransportStayVisibleOnMixer(){
+        compose.waitUntil(15000){compose.onAllNodesWithText("MIXER").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithTag("nav-mixer").performClick()
+        compose.onNodeWithText("CTRL 1").assertIsDisplayed()
+        compose.onNodeWithText("PLAY").assertIsDisplayed()
+        compose.onNodeWithText("STOP").assertIsDisplayed()
+    }
+    @Test fun padLightsWhileHeld(){
+        compose.waitUntil(15000){compose.onAllNodesWithText("PADS").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("PADS").performClick()
+        compose.waitUntil(15000){compose.onNodeWithTag("record-status").fetchSemanticsNode().config[SemanticsProperties.Text].any{it.text=="READY"}}
+        val pad=compose.onNodeWithTag("pad-1")
+        pad.performTouchInput{down(center)}
+        try{
+            compose.waitUntil(2000){
+                val config=pad.fetchSemanticsNode().config
+                config.contains(SemanticsProperties.StateDescription) &&
+                    config[SemanticsProperties.StateDescription].startsWith("Tocado, intensidade")
+            }
+            val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+            File(compose.activity.getExternalFilesDir(null),"ui-pad-press.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+            screenshot.recycle()
+        }finally{
+            pad.performTouchInput{up()}
+        }
+    }
+
+    @Test fun sampleEditorGroupsTrimCharacterAndActions(){
+        compose.waitUntil(15000){compose.onAllNodesWithText("SAMPLE").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithText("SAMPLE").performClick()
+        compose.onNodeWithText("RECORTE").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CARÁTER DO SAMPLE").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("APLICAR · SALVAR").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CHOP · 16 PADS").assertExists()
+        val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.getExternalFilesDir(null),"ui-sample-editor.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+        screenshot.recycle()
+    }
+    @Test fun tracksOpenFirstAndOtherControlsAreBelow(){
+        compose.waitUntil(15000){compose.onAllNodesWithTag("nav-pistas").fetchSemanticsNodes().isNotEmpty()}
+        compose.onNodeWithTag("nav-pistas").performClick()
+        compose.onNodeWithText("SEQUENCIADOR").assertIsDisplayed()
+        val trackTop=compose.onNodeWithText("SEQUENCIADOR").fetchSemanticsNode().boundsInRoot.top
+        val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        File(compose.activity.getExternalFilesDir(null),"ui-tracks.png").outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
+        screenshot.recycle()
+        compose.onNodeWithText("GRAVAÇÃO MULTIPISTAS").performScrollTo().assertIsDisplayed()
+        val recordingTop=compose.onNodeWithText("GRAVAÇÃO MULTIPISTAS").fetchSemanticsNode().boundsInRoot.top
+        assertTrue("Track sequencer should appear before the remaining controls",trackTop<recordingTop)
+    }
 }
+

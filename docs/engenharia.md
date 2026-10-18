@@ -8,7 +8,8 @@ Oferecer um fluxo compacto de produção de batidas com marca original e control
 
 | Fronteira | Responsabilidade real | Onde inspecionar |
 |---|---|---|
-| Núcleo Kotlin | PCM/WAV, efeitos, padrões e mix estéreo | [Audio.kt](../core/src/main/kotlin/dev/breda/beats/core/Audio.kt) |
+| Núcleo de áudio | PCM/WAV, padrões e mix estéreo | [Audio.kt](../core/src/main/kotlin/dev/breda/beats/core/Audio.kt) |
+| FX master | Filtro, saturação, delay e efeitos de performance | [Effects.kt](../core/src/main/kotlin/dev/breda/beats/core/Effects.kt) |
 | Motor Android | AudioTrack/AudioRecord e ciclo de vida | [Studio.kt](../androidApp/src/main/kotlin/dev/breda/beats/data/Studio.kt) |
 | Apresentação | StudioViewModel com dependências injetadas | [StudioViewModel.kt](../androidApp/src/main/kotlin/dev/breda/beats/presentation/StudioViewModel.kt) |
 | Persistência | Codec de projeto e gravação atômica | [ProjectCodec.kt](../androidApp/src/main/kotlin/dev/breda/beats/data/ProjectCodec.kt) |
@@ -26,7 +27,7 @@ Os arquivos abaixo fazem parte do código versionado. A existência de uma suít
 - [androidApp/src/androidTest/kotlin/dev/breda/beats/FixedPadsTest.kt](../androidApp/src/androidTest/kotlin/dev/breda/beats/FixedPadsTest.kt)
 - [androidApp/src/test/kotlin/dev/breda/beats/data/ProjectArchiveTest.kt](../androidApp/src/test/kotlin/dev/breda/beats/data/ProjectArchiveTest.kt)
 - [androidApp/src/test/kotlin/dev/breda/beats/presentation/StudioViewModelTest.kt](../androidApp/src/test/kotlin/dev/breda/beats/presentation/StudioViewModelTest.kt)
-- [core/src/test/kotlin/dev/breda/beats/core/AudioTest.kt](../core/src/test/kotlin/dev/breda/beats/core/AudioTest.kt)
+- [core/src/test/kotlin/dev/breda/beats/core/AudioTest.kt](../core/src/test/kotlin/dev/breda/beats/core/AudioTest.kt) — FX transparente, reverb, repetição rítmica e lo-fi
 - [core/src/test/kotlin/dev/breda/beats/core/CountInTest.kt](../core/src/test/kotlin/dev/breda/beats/core/CountInTest.kt)
 - [core/src/test/kotlin/dev/breda/beats/core/MixerTest.kt](../core/src/test/kotlin/dev/breda/beats/core/MixerTest.kt)
 - [core/src/test/kotlin/dev/breda/beats/core/ProductionTest.kt](../core/src/test/kotlin/dev/breda/beats/core/ProductionTest.kt)

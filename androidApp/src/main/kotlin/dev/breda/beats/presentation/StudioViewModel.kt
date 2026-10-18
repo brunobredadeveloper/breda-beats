@@ -6,10 +6,13 @@ import dev.breda.beats.core.*
 import dev.breda.beats.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 data class StudioState(
+    val appearance:StudioAppearance=StudioAppearance(),
     val project:StudioProject=StudioProject(), val pad:Int=0, val playing:Boolean=false,
     val recording:Boolean=false, val recordPads:Boolean=false, val micEnabled:Boolean=false,
     val pendingTake:Sample?=null, val takePad:Int=0, val busy:Boolean=true,
@@ -27,7 +30,8 @@ class StudioViewModel(
     private val repository:StudioRepository,
     private val createEngine:((()->Unit)->AudioEngine),
     private val io:CoroutineDispatcher=Dispatchers.IO,
-    private val cpu:CoroutineDispatcher=Dispatchers.Default
+    private val cpu:CoroutineDispatcher=Dispatchers.Default,
+    private val appearanceRepository:AppearanceRepository?=null
 ):ViewModel(){
     private val mutable=MutableStateFlow(StudioState())
     val state=mutable.asStateFlow()
@@ -40,7 +44,13 @@ class StudioViewModel(
     private var micGeneration=0L
     private var finishingMic=false
     private var countInJob:Job?=null
+    private val appearanceWrites=Mutex()
+    private var savedAppearance=StudioAppearance()
     init {
+        viewModelScope.launch {
+            try { val value=withContext(io){appearanceRepository?.load()?:StudioAppearance()};savedAppearance=value;update{it.copy(appearance=value)} }
+            catch(e:Exception) { message("Não foi possível ler suas cores: ${e.message}") }
+        }
         viewModelScope.launch {
             try {
                 val project=withContext(io){repository.load()}
@@ -72,6 +82,15 @@ class StudioViewModel(
     }
     fun release(pad:Int){engine?.release(pad)}
     fun page(page:Int){update{it.copy(page=page)}}
+    fun appearance(value:StudioAppearance) {
+        update{it.copy(appearance=value)}
+        viewModelScope.launch {
+            appearanceWrites.withLock {
+                try { withContext(io){appearanceRepository?.save(value)};savedAppearance=value }
+                catch(e:Exception) { update{it.copy(appearance=if(it.appearance==value)savedAppearance else it.appearance,message="Falha ao salvar as cores: ${e.message}")} }
+            }
+        }
+    }
     fun loop(){val s=state.value;channel(s.pad,s.project.channels[s.pad].copy(loop=!s.loop))}
     fun gate(){val s=state.value;channel(s.pad,s.project.channels[s.pad].copy(gate=!s.gate))}
     fun reverse(){update{it.copy(reverse=!it.reverse)}}
@@ -79,8 +98,8 @@ class StudioViewModel(
     fun gain(gain:Float){update{it.copy(gain=gain)}}
     fun drive(drive:Float){update{it.copy(drive=drive)}}
     fun volume(v:Float){engine?.volume(v)}
-    fun master(v:Float){val p=state.value.project.copy(master=v.coerceIn(0f,1f));if(state.value.recordPads || state.value.songPlaying){update{it.copy(project=p,loop=p.channels[it.pad].loop,gate=p.channels[it.pad].gate)};engine?.volume(p.master)}else commit(p)}
-    private fun commit(next:StudioProject,kind:Int=0,previous:StudioProject=state.value.project,completed:()->Unit={}){
+    fun master(v:Float){val p=state.value.project.copy(master=v.coerceIn(0f,1f));if(state.value.recordPads || state.value.songPlaying){update{it.copy(project=p,loop=p.channels[it.pad].loop,gate=p.channels[it.pad].gate)};engine?.volume(p.master)}else commit(p,quiet=true)}
+    private fun commit(next:StudioProject,kind:Int=0,previous:StudioProject=state.value.project,completed:()->Unit={},quiet:Boolean=false){
         if(state.value.busy || state.value.songPlaying || engine==null || state.value.recordPads || state.value.recording || state.value.countdown>0)return
         if(next==previous)return
         update{it.copy(busy=true)}
@@ -91,13 +110,13 @@ class StudioViewModel(
                 applyAudio(next)
                 completed()
                 if(state.value.playing && !state.value.songPlaying){if(next.pattern.steps.size==previous.pattern.steps.size)engine?.updatePattern(next.pattern) else engine?.transport(next.pattern)}
-                update{it.copy(project=next,busy=false,loop=next.channels[it.pad].loop,gate=next.channels[it.pad].gate,canUndo=history.canUndo,canRedo=history.canRedo,message=when(kind){1->"Última ação desfeita";2->"Ação refeita";else->"Projeto salvo"})}
+                update{it.copy(project=next,busy=false,loop=next.channels[it.pad].loop,gate=next.channels[it.pad].gate,canUndo=history.canUndo,canRedo=history.canRedo,message=when(kind){1->"Última ação desfeita";2->"Ação refeita";else->if(quiet)null else "Projeto salvo"})}
             } catch(e:Exception){applyAudio(previous);update{it.copy(project=previous,busy=false,error="Falha ao salvar; estado anterior preservado: ${e.message}")}}
         }
     }
     fun undo(){if(!state.value.recordPads)history.undoTarget()?.let{commit(it,1)}}
     fun redo(){if(!state.value.recordPads)history.redoTarget()?.let{commit(it,2)}}
-    fun channel(pad:Int,value:Channel){val p=state.value.project.channel(pad,value);if(state.value.recordPads || state.value.songPlaying){update{it.copy(project=p,loop=p.channels[it.pad].loop,gate=p.channels[it.pad].gate)};engine?.mix(p.channels)}else commit(p)}
+    fun channel(pad:Int,value:Channel){val p=state.value.project.channel(pad,value);if(state.value.recordPads || state.value.songPlaying){update{it.copy(project=p,loop=p.channels[it.pad].loop,gate=p.channels[it.pad].gate)};engine?.mix(p.channels)}else commit(p,quiet=true)}
     fun previewChannel(pad:Int,value:Channel){engine?.mix(state.value.project.channel(pad,value).channels)}
     fun name(pad:Int,text:String){val name=text.trim().take(24);if(name.isNotEmpty())commit(state.value.project.copy(names=state.value.project.names.mapIndexed{i,n->if(i==pad)name else n}))}
     fun title(text:String){val t=text.trim().take(80);if(t.isNotEmpty())commit(state.value.project.copy(title=t))}
@@ -214,7 +233,7 @@ class StudioViewModel(
     fun appendSequence(slot:Int)=operation{val p=state.value.project;p.copy(arrangement=p.arrangement+slot)}
     fun removeLastSequence()=operation{val p=state.value.project;p.copy(arrangement=p.arrangement.dropLast(1).ifEmpty{listOf(p.slot)})}
     fun playSong(){val s=state.value;if(s.songPlaying){stop();return};if(s.busy || s.recording || s.recordPads || s.countdown>0)return;songBase=s.project;engine?.stopAll();engine?.song(s.project.arrangement.map{s.project.sequence(it)});update{it.copy(playing=true,songPlaying=true)}}
-    fun effect(settings:FxSettings){val p=state.value.project.copy(fx=settings);if(state.value.songPlaying || state.value.recordPads){update{it.copy(project=p)};engine?.effects(settings,p.pattern.bpm)}else operation{p}}
+    fun effect(settings:FxSettings){val p=state.value.project.copy(fx=settings);if(state.value.songPlaying || state.value.recordPads){update{it.copy(project=p)};engine?.effects(settings,p.pattern.bpm)}else commit(p,quiet=true)}
     fun previewEffect(settings:FxSettings){engine?.effects(settings,state.value.pattern.bpm)}
     fun resample(){
         val s=state.value;if(s.busy || s.playing || s.recording || s.countdown>0)return
@@ -232,3 +251,4 @@ class StudioViewModel(
     }
     override fun onCleared(){microphone.cancel();engine?.close()}
 }
+
