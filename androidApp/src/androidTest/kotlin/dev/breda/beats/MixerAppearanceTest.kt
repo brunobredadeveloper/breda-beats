@@ -54,7 +54,7 @@ class MixerAppearanceTest {
     }
     @Test fun sixteenChannelsFitLandscape() {
         ready(true)
-        try { open();verifyChannels();capture("ui-mixer-landscape.png") }
+        try { open();capture("ui-mixer-landscape.png");verifyChannels() }
         finally { compose.runOnUiThread{compose.activity.requestedOrientation=ActivityInfo.SCREEN_ORIENTATION_PORTRAIT} }
     }
     @Test fun mixerOverlaysCurrentPageAndChannelsRemainIndependent() {
@@ -66,6 +66,7 @@ class MixerAppearanceTest {
         compose.onNodeWithTag("mixer-selected-name").assertTextContains("CH 13",substring=true)
         compose.waitUntil(15000){!compose.onNodeWithTag("mixer-mute").fetchSemanticsNode().config.contains(SemanticsProperties.Disabled)}
         compose.onNodeWithTag("mixer-mute").performClick()
+        compose.waitUntil(15000){compose.onNodeWithTag("mixer-mute").fetchSemanticsNode().config[SemanticsProperties.StateDescription]=="Ligado"}
         compose.onNodeWithTag("mixer-mute").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription,"Ligado"))
         compose.waitUntil(15000){!compose.onNodeWithTag("mixer-mute").fetchSemanticsNode().config.contains(SemanticsProperties.Disabled)}
         compose.onNodeWithTag("mixer-mute").performClick()

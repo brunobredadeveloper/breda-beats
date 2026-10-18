@@ -58,14 +58,19 @@ import kotlin.math.roundToInt
     val enabled=!s.busy && !s.recording && s.countdown==0
     BoxWithConstraints(modifier.fillMaxWidth().testTag("mixer-sheet").padding(horizontal=10.dp)) {
         val columns=if(maxWidth>600.dp)16 else 8
-        Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth().height(30.dp),verticalAlignment=Alignment.CenterVertically) {
-                Text("MESA DE MIXAGEM",fontWeight=FontWeight.Black,fontSize=15.sp,color=colors.accentText)
-                Text("  16 CANAIS",Modifier.weight(1f),fontSize=9.sp,color=colors.muted)
+        val compact=maxHeight<260.dp
+        Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(if(compact)2.dp else 4.dp)) {
+            Row(Modifier.fillMaxWidth().height(if(compact)26.dp else 30.dp),verticalAlignment=Alignment.CenterVertically) {
+                Text(if(compact)"MIXER" else "MESA DE MIXAGEM",fontWeight=FontWeight.Black,fontSize=if(compact)12.sp else 15.sp,color=colors.accentText)
+                if(compact) {
+                    Text("  MASTER ${(master*100).roundToInt()}%",fontSize=9.sp,color=colors.muted)
+                    Slider(master,{master=it;vm.volume(it)},onValueChangeFinished={vm.master(master)},enabled=enabled,modifier=Modifier.weight(1f).testTag("mixer-master"))
+                    if(s.clipped)Text("CLIP",fontSize=9.sp,color=MaterialTheme.colorScheme.error)
+                } else Text("  16 CANAIS",Modifier.weight(1f),fontSize=9.sp,color=colors.muted)
                 TextButton(onClick=onEffects,contentPadding=PaddingValues(horizontal=8.dp),modifier=Modifier.testTag("mixer-fx")){Text("FX",fontSize=11.sp)}
                 IconButton(onClick=onDismiss,modifier=Modifier.size(30.dp).testTag("mixer-close").semantics{contentDescription="Fechar mixer"}){Text("×",fontSize=24.sp)}
             }
-            Row(Modifier.fillMaxWidth().height(32.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            if(!compact)Row(Modifier.fillMaxWidth().height(32.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 Text("MASTER ${(master*100).roundToInt()}%",fontSize=10.sp,color=colors.accentText)
                 Slider(master,{master=it;vm.volume(it)},onValueChangeFinished={vm.master(master)},enabled=enabled,modifier=Modifier.weight(1f).testTag("mixer-master"))
                 Text(if(s.clipped)"CLIP" else "L / R",fontSize=9.sp,color=if(s.clipped)MaterialTheme.colorScheme.error else colors.muted)
@@ -74,17 +79,17 @@ import kotlin.math.roundToInt
                 for(row in 0 until 16/columns)Row(Modifier.weight(1f).fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(3.dp)) {
                     for(col in 0 until columns) {
                         val pad=row*columns+col
-                        MixerStrip(pad,s,vm,pad==selected,{selected=pad},Modifier.weight(1f).fillMaxHeight())
+                        MixerStrip(pad,s,vm,pad==selected,{selected=pad},compact,Modifier.weight(1f).fillMaxHeight())
                     }
                 }
             }
-            MixerSelectedChannel(selected,s,vm)
-            Spacer(Modifier.height(3.dp))
+            MixerSelectedChannel(selected,s,vm,compact)
+            Spacer(Modifier.height(if(compact)1.dp else 3.dp))
         }
     }
 }
 
-@Composable private fun MixerStrip(pad:Int,s:StudioState,vm:StudioViewModel,selected:Boolean,onSelect:()->Unit,modifier:Modifier) {
+@Composable private fun MixerStrip(pad:Int,s:StudioState,vm:StudioViewModel,selected:Boolean,onSelect:()->Unit,compact:Boolean,modifier:Modifier) {
     val colors=LocalStudioColors.current
     val channel=s.project.channels[pad]
     val currentChannel by rememberUpdatedState(channel)
@@ -97,13 +102,13 @@ import kotlin.math.roundToInt
     val silent=channel.mute || (soloed && !channel.solo)
     Column(modifier.background(if(selected)colors.raised else colors.inset,RoundedCornerShape(7.dp))
         .border(if(selected)1.5.dp else .5.dp,if(selected)colors.accentText else colors.outline,RoundedCornerShape(7.dp))
-        .testTag("mixer-channel-${pad+1}").padding(horizontal=3.dp,vertical=3.dp),
+        .testTag("mixer-channel-${pad+1}").padding(horizontal=3.dp,vertical=if(compact)2.dp else 3.dp),
         horizontalAlignment=Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth().clickable(onClick=onSelect),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.Center) {
             Text("${pad+1}",fontSize=12.sp,fontWeight=FontWeight.Bold,color=colors.text)
             if(channel.mute || channel.solo)Text(if(channel.mute)" M" else " S",fontSize=8.sp,color=colors.accentText)
         }
-        Text(s.project.names[pad],fontSize=7.sp,maxLines=1,overflow=TextOverflow.Ellipsis,color=colors.muted)
+        if(!compact)Text(s.project.names[pad],fontSize=7.sp,maxLines=1,overflow=TextOverflow.Ellipsis,color=colors.muted)
         Canvas(Modifier.weight(1f).fillMaxWidth().testTag("mixer-fader-${pad+1}").semantics {
             contentDescription="Volume canal ${pad+1}, ${s.project.names[pad]}"
             stateDescription="${(level*100).roundToInt()}%"
@@ -133,7 +138,7 @@ import kotlin.math.roundToInt
     }
 }
 
-@Composable private fun MixerSelectedChannel(pad:Int,s:StudioState,vm:StudioViewModel) {
+@Composable private fun MixerSelectedChannel(pad:Int,s:StudioState,vm:StudioViewModel,compact:Boolean) {
     val colors=LocalStudioColors.current
     val channel=s.project.channels[pad]
     var pan by remember(pad,channel.pan){mutableFloatStateOf(channel.pan)}
@@ -141,13 +146,17 @@ import kotlin.math.roundToInt
     var name by remember(pad,s.project.names[pad]){mutableStateOf(s.project.names[pad])}
     val enabled=!s.busy && !s.recording && s.countdown==0
     Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().height(32.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth().height(if(compact)28.dp else 32.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
             Text("CH ${pad+1} · ${s.project.names[pad]}",Modifier.weight(1f).clickable{rename=true}.testTag("mixer-selected-name"),fontSize=11.sp,fontWeight=FontWeight.Bold,color=colors.text,maxLines=1,overflow=TextOverflow.Ellipsis)
+            if(compact) {
+                Text("PAN",fontSize=9.sp,color=colors.muted)
+                Slider(pan,{pan=it;vm.previewChannel(pad,channel.copy(pan=it))},onValueChangeFinished={vm.channel(pad,channel.copy(pan=pan))},valueRange=-1f..1f,enabled=enabled,modifier=Modifier.weight(1f).testTag("mixer-pan"))
+            }
             MixerToggle("M",channel.mute,enabled,"mixer-mute"){vm.channel(pad,channel.copy(mute=!channel.mute))}
             MixerToggle("S",channel.solo,enabled,"mixer-solo"){vm.channel(pad,channel.copy(solo=!channel.solo))}
             TextButton(onClick={vm.hit(pad);vm.release(pad)},enabled=enabled,contentPadding=PaddingValues(4.dp),modifier=Modifier.height(32.dp).testTag("mixer-cue")){Text("CUE",fontSize=10.sp)}
         }
-        Row(Modifier.fillMaxWidth().height(30.dp),verticalAlignment=Alignment.CenterVertically) {
+        if(!compact)Row(Modifier.fillMaxWidth().height(30.dp),verticalAlignment=Alignment.CenterVertically) {
             Text(if(pan==0f)"PAN C" else if(pan<0)"PAN L ${(-pan*100).roundToInt()}" else "PAN R ${(pan*100).roundToInt()}",Modifier.width(78.dp),fontSize=9.sp,color=colors.muted)
             Slider(pan,{pan=it;vm.previewChannel(pad,channel.copy(pan=it))},onValueChangeFinished={vm.channel(pad,channel.copy(pan=pan))},valueRange=-1f..1f,enabled=enabled,modifier=Modifier.weight(1f).testTag("mixer-pan"))
             TextButton(onClick={pan=0f;vm.channel(pad,channel.copy(pan=0f))},enabled=enabled,contentPadding=PaddingValues(2.dp),modifier=Modifier.height(30.dp)){Text("C",fontSize=10.sp)}
