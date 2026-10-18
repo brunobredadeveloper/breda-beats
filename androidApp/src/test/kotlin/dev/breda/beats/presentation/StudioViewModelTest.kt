@@ -47,6 +47,7 @@ class StudioViewModelTest {
     }
     @Test fun undoRedoRestoresIndependentVolumes()=scenario {vm,repo->
         vm.channel(0,Channel(.7f));runCurrent();assertEquals(.7f,repo.project.channels[0].level,0f);assertEquals(1f,repo.project.channels[1].level,0f)
+        assertNull(vm.state.value.message)
         vm.undo();runCurrent();assertEquals(1f,repo.project.channels[0].level,0f)
         vm.redo();runCurrent();assertEquals(.7f,repo.project.channels[0].level,0f)
     }

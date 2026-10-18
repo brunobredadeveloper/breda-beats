@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -69,6 +71,8 @@ private val AccentOptions=listOf("Âmbar" to "F6B44E","Coral" to "FF819D","Viole
 
 @Composable fun AppearancePanel(value:StudioAppearance,onChange:(StudioAppearance)->Unit) {
     val colors=LocalStudioColors.current
+    val focus=LocalFocusManager.current
+    val keyboard=LocalSoftwareKeyboardController.current
     var background by remember(value.backgroundHex){mutableStateOf(value.backgroundHex)}
     var accent by remember(value.accentHex){mutableStateOf(value.accentHex)}
     val valid=StudioAppearance.validHex(background) && StudioAppearance.validHex(accent)
@@ -84,7 +88,7 @@ private val AccentOptions=listOf("Âmbar" to "F6B44E","Coral" to "FF819D","Viole
             }
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
                 TextButton(onClick={onChange(StudioAppearance())},modifier=Modifier.testTag("appearance-reset")){Text("RESTAURAR",fontSize=11.sp)}
-                Button(onClick={onChange(StudioAppearance(background,accent))},enabled=valid,modifier=Modifier.testTag("appearance-apply")){Text("APLICAR CORES",fontSize=11.sp)}
+                Button(onClick={focus.clearFocus();keyboard?.hide();onChange(StudioAppearance(background,accent))},enabled=valid,modifier=Modifier.testTag("appearance-apply")){Text("APLICAR CORES",fontSize=11.sp)}
             }
         }
     }

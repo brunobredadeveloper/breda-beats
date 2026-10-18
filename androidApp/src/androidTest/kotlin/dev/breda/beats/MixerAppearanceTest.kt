@@ -27,6 +27,7 @@ class MixerAppearanceTest {
         compose.onNodeWithTag("mixer-channel-16").assertIsDisplayed()
     }
     private fun capture(name:String) {
+        compose.waitForIdle()
         val screenshot=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
         File(compose.activity.getExternalFilesDir(null),name).outputStream().use{screenshot.compress(Bitmap.CompressFormat.PNG,100,it)}
         screenshot.recycle()
@@ -65,6 +66,7 @@ class MixerAppearanceTest {
         compose.onNodeWithTag("mixer-fader-14").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription,untouched))
         compose.onNodeWithTag("mixer-selected-name").assertTextContains("CH 13",substring=true)
         compose.waitUntil(15000){!compose.onNodeWithTag("mixer-mute").fetchSemanticsNode().config.contains(SemanticsProperties.Disabled)}
+        compose.onNodeWithText("Projeto salvo").assertDoesNotExist()
         compose.onNodeWithTag("mixer-mute").performClick()
         compose.waitUntil(15000){compose.onNodeWithTag("mixer-mute").fetchSemanticsNode().config[SemanticsProperties.StateDescription]=="Ligado"}
         compose.onNodeWithTag("mixer-mute").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription,"Ligado"))
@@ -90,7 +92,9 @@ class MixerAppearanceTest {
             compose.onNodeWithTag("appearance-apply").assertIsNotEnabled()
             compose.onNodeWithTag("custom-accent").performTextReplacement("82E0FF")
             compose.onNodeWithTag("appearance-apply").performClick()
+            compose.waitUntil(15000){compose.onNodeWithTag("appearance-settings").fetchSemanticsNode().config[SemanticsProperties.StateDescription]=="Fundo #102B40; controles #82E0FF"}
             compose.onNodeWithTag("background-F0EEE7").performClick()
+            compose.waitUntil(15000){compose.onNodeWithTag("appearance-settings").fetchSemanticsNode().config[SemanticsProperties.StateDescription]=="Fundo #F0EEE7; controles #82E0FF"}
             capture("ui-appearance-light.png")
         } finally {
             compose.onNodeWithTag("appearance-reset").performClick()
